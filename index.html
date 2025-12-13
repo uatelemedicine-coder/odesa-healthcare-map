@@ -926,7 +926,7 @@
             document.getElementById('auto-refresh-btn').addEventListener('click', toggleAutoRefresh);
             document.getElementById('theme-toggle').addEventListener('click', () => { currentTheme = currentTheme === 'light' ? 'dark' : 'light'; localStorage.setItem('theme', currentTheme); initTheme(); });
             
-            if (GOOGLE_SHEET_ID && GOOGLE_SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID') loadFromGoogleSheets(true);
+            if (GOOGLE_SHEET_ID && GOOGLE_SHEET_ID !== '1QBvEwL95rTy-srxIZBlx8l_LYWrmDUvr41vT8xh3XvM') loadFromGoogleSheets(true);
             showToast('✓ Карту завантажено');
         }
         
