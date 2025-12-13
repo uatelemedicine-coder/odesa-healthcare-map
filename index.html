@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оперативна карта ЗОЗ • Одеська область • 13.12.2025</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --bg-hover: #e2e8f0;
+            --border-color: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --accent-green: #10b981;
+            --accent-green-bg: rgba(16, 185, 129, 0.1);
+            --accent-red: #ef4444;
+            --accent-red-bg: rgba(239, 68, 68, 0.1);
+            --accent-blue: #3b82f6;
+            --accent-blue-bg: rgba(59, 130, 246, 0.1);
+            --accent-purple: #8b5cf6;
+            --accent-purple-bg: rgba(139, 92, 246, 0.1);
+            --accent-yellow: #f59e0b;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --popup-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            --district-power: #fbbf24;
+            --district-partial: #fb923c;
+            --district-no-power: #60a5fa;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-hover: #475569;
+            --border-color: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --text-light: #64748b;
+            --accent-green-bg: rgba(16, 185, 129, 0.2);
+            --accent-red-bg: rgba(239, 68, 68, 0.2);
+            --accent-blue-bg: rgba(59, 130, 246, 0.2);
+            --accent-purple-bg: rgba(139, 92, 246, 0.2);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            --popup-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        .dashboard { display: flex; flex-direction: column; height: 100vh; }
+        
+        .header {
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        
+        .logo {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700; font-size: 18px;
+        }
+        
+        .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+        .header-date { font-size: 13px; color: var(--text-muted); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; }
+        
+        .stat-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .stat-icon { width: 8px; height: 8px; border-radius: 50%; }
+        .stat-icon.green { background: var(--accent-green); }
+        .stat-icon.red { background: var(--accent-red); }
+        .stat-icon.blue { background: var(--accent-blue); }
+        .stat-value { font-size: 16px; font-weight: 700; }
+        .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .header-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        
+        .header-btn:hover { background: var(--bg-hover); }
+        .header-btn svg { width: 16px; height: 16px; }
+        .header-btn.loading { opacity: 0.6; pointer-events: none; }
+        .header-btn.active { background: var(--accent-green); color: white; border-color: var(--accent-green); }
+        .header-btn.active:hover { background: #059669; }
+        
+        .theme-toggle .sun-icon { display: none; }
+        .theme-toggle .moon-icon { display: block; }
+        [data-theme="dark"] .theme-toggle .sun-icon { display: block; }
+        [data-theme="dark"] .theme-toggle .moon-icon { display: none; }
+        
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        .map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
+        
+        .sidebar {
+            width: 380px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        
+        .tab {
+            flex: 1; padding: 14px 16px; text-align: center;
+            font-size: 14px; font-weight: 600;
+            color: var(--text-muted); cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover { color: var(--text-secondary); background: var(--bg-tertiary); }
+        .tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+        .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+        .tab-content.active { display: flex; }
+        
+        .districts-list, .facilities-list { flex: 1; overflow-y: auto; padding: 12px; }
+        
+        .district-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .district-card:hover { border-color: var(--text-light); box-shadow: var(--card-shadow); }
+        .district-card.active { border-color: var(--accent-blue); background: var(--accent-blue-bg); }
+        .district-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .district-name { font-size: 15px; font-weight: 600; }
+        
+        .district-status {
+            padding: 4px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 600;
+        }
+        
+        .district-status.power { background: rgba(251, 191, 36, 0.2); color: #b45309; }
+        .district-status.partial { background: rgba(251, 146, 60, 0.2); color: #c2410c; }
+        .district-status.no-power { background: rgba(96, 165, 250, 0.2); color: #1d4ed8; }
+        
+        [data-theme="dark"] .district-status.power { color: #fbbf24; }
+        [data-theme="dark"] .district-status.partial { color: #fb923c; }
+        [data-theme="dark"] .district-status.no-power { color: #60a5fa; }
+        
+        .district-stats { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); }
+        .district-stat { display: flex; align-items: center; gap: 4px; }
+        .district-stat svg { width: 14px; height: 14px; }
+        
+        .filters {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        
+        .search-box { position: relative; }
+        
+        .search-box input {
+            width: 100%; padding: 10px 12px 10px 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px; outline: none;
+        }
+        
+        .search-box input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-blue-bg); }
+        .search-box input::placeholder { color: var(--text-light); }
+        .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-light); width: 16px; height: 16px; }
+        .filter-row { display: flex; gap: 8px; }
+        
+        .filter-row select {
+            flex: 1; padding: 8px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 12px; outline: none; cursor: pointer;
+        }
+        
+        .results-count { font-size: 12px; color: var(--text-muted); padding: 8px 12px; }
+        
+        .facility-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .facility-card:hover { border-color: var(--text-light); }
+        .facility-card.active { border-color: var(--accent-blue); background: var(--accent-blue-bg); }
+        .facility-card.has-power { border-left: 3px solid var(--accent-green); }
+        .facility-card.no-power { border-left: 3px solid var(--accent-red); }
+        .facility-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+        
+        .power-indicator {
+            width: 24px; height: 24px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .power-indicator.on { background: var(--accent-green-bg); color: var(--accent-green); }
+        .power-indicator.off { background: var(--accent-red-bg); color: var(--accent-red); }
+        .facility-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+        .facility-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+        .meta-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+        .meta-item svg { width: 12px; height: 12px; }
+        
+        .network-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 10px; font-weight: 600; text-transform: uppercase;
+        }
+        
+        .network-badge.nadklusterna { background: var(--accent-purple-bg); color: var(--accent-purple); }
+        .network-badge.klusterna { background: var(--accent-blue-bg); color: var(--accent-blue); }
+        .network-badge.zagalna { background: var(--bg-hover); color: var(--text-muted); }
+        
+        .facility-details {
+            display: none; padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 10px;
+        }
+        
+        .facility-card.expanded .facility-details { display: block; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .detail-item { font-size: 11px; }
+        .detail-label { color: var(--text-light); margin-bottom: 2px; }
+        .detail-value { color: var(--text-primary); font-weight: 500; }
+        
+        .contact-info {
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--text-muted);
+        }
+        
+        .legend {
+            position: absolute; bottom: 30px; left: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px; z-index: 1000;
+            font-size: 12px;
+            box-shadow: var(--card-shadow);
+            min-width: 180px;
+        }
+        
+        .legend-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .legend-title { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+        
+        .toggle-switch {
+            position: relative; width: 36px; height: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 10px; cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+        
+        .toggle-switch.active { background: var(--accent-blue); border-color: var(--accent-blue); }
+        
+        .toggle-switch::after {
+            content: ''; position: absolute;
+            width: 16px; height: 16px;
+            background: white; border-radius: 50%;
+            top: 1px; left: 1px;
+            transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.active::after { transform: translateX(16px); }
+        .legend-section { margin-bottom: 12px; }
+        .legend-section:last-child { margin-bottom: 0; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--text-secondary); }
+        .legend-item:last-child { margin-bottom: 0; }
+        .legend-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .legend-color.yellow { background: #fbbf24; }
+        .legend-color.orange { background: #fb923c; }
+        .legend-color.blue { background: #60a5fa; }
+        .legend-marker { width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .legend-marker.green { background: #10b981; }
+        .legend-marker.red { background: #ef4444; }
+        .legend-divider { height: 1px; background: var(--border-color); margin: 10px 0; }
+        
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 12px;
+            box-shadow: var(--popup-shadow);
+            border: 1px solid var(--border-color);
+        }
+        
+        .leaflet-popup-content { margin: 0; min-width: 280px; }
+        .leaflet-popup-tip { background: var(--bg-secondary); }
+        .popup-content { padding: 16px; }
+        .popup-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+        
+        .popup-power {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .popup-power.on { background: var(--accent-green-bg); color: var(--accent-green); }
+        .popup-power.off { background: var(--accent-red-bg); color: var(--accent-red); }
+        .popup-title { font-size: 14px; font-weight: 600; line-height: 1.3; }
+        .popup-meta { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        
+        .popup-details {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            padding: 12px; background: var(--bg-tertiary); border-radius: 8px;
+        }
+        
+        .popup-detail { font-size: 11px; }
+        .popup-detail-label { color: var(--text-light); margin-bottom: 2px; }
+        .popup-detail-value { color: var(--text-primary); font-weight: 500; }
+        
+        .popup-contact {
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px;
+        }
+        
+        .custom-marker { display: flex; align-items: center; justify-content: center; }
+        
+        .marker-icon {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        .marker-icon.power-on { background: #10b981; }
+        .marker-icon.power-off { background: #ef4444; }
+        .marker-icon.nadklusterna { border-color: #8b5cf6; width: 34px; height: 34px; }
+        .marker-icon.klusterna { border-color: #3b82f6; width: 31px; height: 31px; }
+        
+        .districts-list::-webkit-scrollbar, .facilities-list::-webkit-scrollbar { width: 6px; }
+        .districts-list::-webkit-scrollbar-track, .facilities-list::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+        .districts-list::-webkit-scrollbar-thumb, .facilities-list::-webkit-scrollbar-thumb { background: var(--text-light); border-radius: 3px; }
+        
+        .marker-cluster-small { background-color: rgba(239, 68, 68, 0.6); }
+        .marker-cluster-small div { background-color: rgba(239, 68, 68, 0.9); }
+        .marker-cluster-medium { background-color: rgba(245, 158, 11, 0.6); }
+        .marker-cluster-medium div { background-color: rgba(245, 158, 11, 0.9); }
+        .marker-cluster-large { background-color: rgba(16, 185, 129, 0.6); }
+        .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.9); }
+        .marker-cluster { background-clip: padding-box; border-radius: 50%; }
+        .marker-cluster div { width: 30px; height: 30px; margin-left: 5px; margin-top: 5px; text-align: center; border-radius: 50%; font: 12px Inter, sans-serif; font-weight: 700; color: white; line-height: 30px; }
+        
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-box {
+            background: var(--bg-secondary);
+            padding: 24px 32px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: var(--popup-shadow);
+            z-index: 9999;
+            display: none;
+        }
+        
+        .toast.show { display: block; animation: fadeIn 0.3s; }
+        .toast.success { border-left: 3px solid var(--accent-green); }
+        .toast.error { border-left: 3px solid var(--accent-red); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        
+        @media (max-width: 900px) {
+            .main-content { flex-direction: column-reverse; }
+            .sidebar { width: 100%; height: 45%; border-left: none; border-top: 1px solid var(--border-color); }
+            .map-container { height: 55%; }
+            .stats-bar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">⚡</div>
+                <div>
+                    <h1>Оперативна карта ЗОЗ</h1>
+                    <div class="header-date">Одеська область • <span id="data-date">13.12.2025</span></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-icon blue"></div>
+                        <div><div class="stat-value" id="total-count">0</div><div class="stat-label">Всього</div></div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon green"></div>
+                        <div><div class="stat-value" id="power-on-count">0</div><div class="stat-label">Зі світлом</div></div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon red"></div>
+                        <div><div class="stat-value" id="power-off-count">0</div><div class="stat-label">Без світла</div></div>
+                    </div>
+                </div>
+                <button class="header-btn" id="refresh-btn" title="Оновити дані з Google Таблиці">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    <span>Оновити</span>
+                </button>
+                <button class="header-btn" id="auto-refresh-btn" title="Увімкнути автооновлення" onclick="toggleAutoRefresh()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>Авто</span>
+                </button>
+                <button class="header-btn theme-toggle" id="theme-toggle" title="Змінити тему">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="legend">
+                    <div class="legend-section">
+                        <div class="legend-header">
+                            <span class="legend-title">Райони</span>
+                            <div class="toggle-switch active" id="district-toggle" title="Показати/приховати"></div>
+                        </div>
+                        <div class="legend-item"><div class="legend-color yellow"></div><span>Є світло</span></div>
+                        <div class="legend-item"><div class="legend-color orange"></div><span>Частково</span></div>
+                        <div class="legend-item"><div class="legend-color blue"></div><span>Немає світла</span></div>
+                    </div>
+                    <div class="legend-divider"></div>
+                    <div class="legend-section">
+                        <div class="legend-title">Заклади</div>
+                        <div class="legend-item"><div class="legend-marker green"></div><span>Зі світлом</span></div>
+                        <div class="legend-item"><div class="legend-marker red"></div><span>Без світла</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="tabs">
+                    <div class="tab active" data-tab="districts">Райони</div>
+                    <div class="tab" data-tab="facilities">Заклади</div>
+                </div>
+                
+                <div class="tab-content active" id="districts-tab">
+                    <div class="districts-list" id="districts-list"></div>
+                </div>
+                
+                <div class="tab-content" id="facilities-tab">
+                    <div class="filters">
+                        <div class="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="text" id="search-input" placeholder="Пошук за назвою...">
+                        </div>
+                        <div class="filter-row">
+                            <select id="power-filter">
+                                <option value="all">Всі статуси</option>
+                                <option value="on">Зі світлом</option>
+                                <option value="off">Без світла</option>
+                            </select>
+                            <select id="district-filter"><option value="all">Всі райони</option></select>
+                            <select id="network-filter">
+                                <option value="all">Мережі</option>
+                                <option value="Надкластерна">Надкластерна</option>
+                                <option value="Кластерна">Кластерна</option>
+                                <option value="Загальна">Загальна</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="results-count">Знайдено: <span id="results-count">0</span> закладів</div>
+                    <div class="facilities-list" id="facilities-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script>
+        // ============ CONFIGURATION ============
+        // Вставте ID вашої Google Таблиці тут
+        // Таблиця повинна бути опублікована: Файл -> Опублікувати в інтернет -> CSV
+        const GOOGLE_SHEET_ID = '1tm2yGN8T1pPR8Yfv2k5FcIC2o4xtWDQR';
+        const SHEET_NAME = 'facilities'; // Назва аркуша з закладами
+        const DISTRICTS_SHEET = 'districts'; // Назва аркуша з районами
+        
+        // URL для завантаження CSV
+        const getFacilitiesUrl = () => `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
+        const getDistrictsUrl = () => `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${DISTRICTS_SHEET}`;
+        
+        // ============ DISTRICTS DATA (з ручними статусами) ============
+        let districts = [
+            { name: 'Одеський', lat: 46.45, lng: 30.55, population: 1360.9, status: 'no-power', size: 0.45 },
+            { name: 'Білгород-Дністровський', lat: 46.05, lng: 30.05, population: 201.4, status: 'power', size: 0.35 },
+            { name: 'Болградський', lat: 45.75, lng: 28.70, population: 154.5, status: 'partial', size: 0.55 },
+            { name: 'Ізмаїльський', lat: 45.40, lng: 29.20, population: 206.2, status: 'partial', size: 0.40 },
+            { name: 'Подільський', lat: 47.75, lng: 29.55, population: 229.9, status: 'power', size: 0.45 },
+            { name: 'Роздільнянський', lat: 47.05, lng: 30.35, population: 104.2, status: 'power', size: 0.35 },
+            { name: 'Березівський', lat: 47.25, lng: 30.90, population: 123.3, status: 'power', size: 0.30 },
+            { name: 'Біляївський', lat: 46.55, lng: 30.20, population: 95.0, status: 'power', size: 0.25 },
+        ];
+        
+        // Інтервал автооновлення (в мілісекундах) - 5 хвилин
+        const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
+        
+        // ============ DEFAULT FACILITIES DATA ============
+        let facilities = [
+            { id: 1, name: 'КНП "Одеська обласна клінічна лікарня" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'Генератори, сонячні панелі, ДБЖ', fuelDays: '7 діб', heating: 'власна котельня', water: 'власна свердловина', waterReserve: '100000 л', contact: 'Ляшенко А.В. 0668035861', lat: 46.4547, lng: 30.7457 },
+            { id: 2, name: 'КНП "Одеська обласна дитяча клінічна лікарня" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'Генератори, сонячні панелі, ДБЖ', fuelDays: '5 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '90000 л', contact: 'Чіхварія Х.О. 0674838818', lat: 46.4692, lng: 30.7501 },
+            { id: 3, name: 'КНП "Одеський обласний клінічний медичний центр" ООР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'сонячні батареї', fuelDays: '20 діб', heating: 'відсутнє', water: 'відсутнє', waterReserve: '5 днів', contact: 'Ткач В.А. 0976154722', lat: 46.4825, lng: 30.7233 },
+            { id: 4, name: 'КНП "Багатопрофільний шпиталь ветеранів" ООР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори, ДБЖ', fuelDays: '5 діб', heating: 'централізоване', water: 'централізоване', waterReserve: '5000 л', contact: 'Жукова І. 0930690099', lat: 46.4556, lng: 30.7689 },
+            { id: 5, name: 'КНП "Одеський обласний центр соціально значущих хвороб" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'генератори', fuelDays: '5 діб', heating: 'частково', water: 'частково', waterReserve: '1000 л', contact: 'Філатенкова А. 0677428025', lat: 46.4485, lng: 30.7580 },
+            { id: 6, name: 'КНП "Обласна психіатрична лікарня № 4" ООР', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'генератор', fuelDays: '2200л', heating: 'власна газова котельня', water: 'централізоване', waterReserve: '20 куб', contact: 'Бедрик С.О. 0979030401', lat: 46.2012, lng: 30.3356 },
+            { id: 7, name: 'КНП "Одеський обласний центр нефрології та діалізу" ООР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори', fuelDays: '20 діб', heating: 'централізоване, відсутнє', water: 'централізоване, відсутнє', waterReserve: '6000 л', contact: 'Блохіна А.С 0983882000', lat: 46.4510, lng: 30.7610 },
+            { id: 8, name: 'КНП "Одеський регіональний клінічний протипухлиний центр" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'генератори', fuelDays: '5 діб', heating: 'централізоване', water: 'централізоване, немає', waterReserve: '7400 л', contact: 'Стефанов Р.П. 0503367576', lat: 46.4559, lng: 30.7678 },
+            { id: 9, name: 'КНП "Одеська обласна станція переливання крові" ООР', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератори ДГА-100', fuelDays: '5 діб', heating: 'централізоване', water: 'централізоване', waterReserve: '4000 л', contact: 'Ткаченко М. 0979395274', lat: 46.4600, lng: 30.7250 },
+            { id: 10, name: 'КНП "Ізмаїльський спеціалізований Будинок дитини" ООР', district: 'Ізмаїльський', network: 'Загальна', power: false, altPower: 'Генератори, ДБЖ', fuelDays: '5 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: 'наявний', contact: 'Фоміна С.', lat: 45.3489, lng: 28.8367 },
+            { id: 11, name: 'КНП "Міський спеціалізований будинок дитини № 1" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератор', fuelDays: '-', heating: 'власна топочна', water: 'централізоване', waterReserve: '10000 л', contact: 'Карпенко А.О. 0957843572', lat: 46.4623, lng: 30.7312 },
+            { id: 12, name: 'КНП "Спеціалізований психоневрологічний будинок дитини № 3" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератор', fuelDays: '5 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '3 доби', contact: 'Стоянов В. 0675134353', lat: 46.4789, lng: 30.7156 },
+            { id: 13, name: 'КНП "Ананьївська багатопрофільна міська лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'Генератор, Тесла', fuelDays: '30 діб', heating: 'власна котельня', water: 'централізоване та свердловина', waterReserve: '25000 л', contact: 'Глізнуца В.П 0968494147', lat: 47.7167, lng: 29.9500 },
+            { id: 14, name: 'КНП "Арцизька центральна опорна лікарня"', district: 'Болградський', network: 'Кластерна', power: false, altPower: 'Генератор, Тесла', fuelDays: '14 діб', heating: 'власна котельня на пелетах', water: 'централізоване та свердловина', waterReserve: '20000 л', contact: 'Челак З. 0972744169', lat: 45.9930, lng: 28.8780 },
+            { id: 15, name: 'КП "Балтська багатопрофільна лікарня"', district: 'Подільський', network: 'Кластерна', power: false, altPower: 'Генератори, сонячна станція, ДБЖ', fuelDays: '10 діб', heating: 'власна котельня', water: 'свердловина', waterReserve: '20000 л', contact: 'Кацмаза Р. 0952284517', lat: 47.9380, lng: 29.6190 },
+            { id: 16, name: 'КНП "Біляївська багатопрофільна лікарня"', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'Генератори, сонячні панелі, Тесла', fuelDays: '10 діб', heating: 'централізована', water: 'наявне', waterReserve: '5000 л', contact: 'Краснянська Н. 0969607452', lat: 46.4860, lng: 30.2110 },
+            { id: 17, name: 'КНП "Березівська центральна міська лікарня"', district: 'Березівський', network: 'Кластерна', power: false, altPower: 'генератор, сонячні батареї', fuelDays: '10 діб', heating: 'власна котельня', water: 'свердловина', waterReserve: '25000 л', contact: 'Алейнов О. 0688730373', lat: 47.2030, lng: 30.9180 },
+            { id: 18, name: 'КНП "Білгород-Дністровська міська багатопрофільна лікарня"', district: 'Білгород-Дністровський', network: 'Кластерна', power: true, altPower: 'Генератори', fuelDays: '7 діб', heating: 'центральна котельня', water: 'централізоване', waterReserve: '18000 л', contact: 'Жнякін В. 0977226393', lat: 46.1930, lng: 30.3460 },
+            { id: 19, name: 'КНП "Ізмаїльська міська центральна лікарня"', district: 'Ізмаїльський', network: 'Кластерна', power: false, altPower: 'генератори, сонячні панелі', fuelDays: '14 діб', heating: 'центральне + власна котельня', water: 'автономне, свердловини', waterReserve: '280000 л', contact: 'Бажак С. 0973543451', lat: 45.3530, lng: 28.8330 },
+            { id: 20, name: 'КНП "Вилківська міська лікарня"', district: 'Ізмаїльський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '5 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '30 куб', contact: 'Мінчев В.І. 0972721656', lat: 45.4060, lng: 29.5890 },
+            { id: 21, name: 'КНП "Кілійська багатопрофільна лікарня"', district: 'Ізмаїльський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '7 діб', heating: 'автономне, вугільні котли', water: 'централізоване + резерв', waterReserve: '41 куб', contact: "Жур'ян В.С. 0972174231", lat: 45.4420, lng: 29.2620 },
+            { id: 22, name: 'КНП "Південнівська міська лікарня"', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '4 доби', heating: 'відсутнє', water: 'власна свердловина', waterReserve: '3000 л', contact: 'Мисік К.Ю. 0501597709', lat: 46.6256, lng: 31.1036 },
+            { id: 23, name: 'КНП "Подільська міська лікарня"', district: 'Подільський', network: 'Кластерна', power: true, altPower: 'генератори, сонячні панелі', fuelDays: '7 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '6000 л', contact: 'Літянський Д.С. 0984842595', lat: 47.7490, lng: 29.5350 },
+            { id: 24, name: 'КНП "Роздільнянська багатопрофільна лікарня"', district: 'Роздільнянський', network: 'Кластерна', power: true, altPower: 'Генератори', fuelDays: '7 діб', heating: 'централізоване', water: 'централізоване + свердловина', waterReserve: '6000 л', contact: 'Осипов В.О. 0669244340', lat: 46.8480, lng: 30.4920 },
+            { id: 25, name: 'КНП "Чорноморська лікарня"', district: 'Одеський', network: 'Кластерна', power: true, altPower: 'Генератори', fuelDays: '7 діб', heating: 'централізоване', water: 'централізоване', waterReserve: '25000 л', contact: 'Андрєєв Ю.В. 0637262404', lat: 46.3040, lng: 30.6560 },
+            { id: 26, name: 'КНП "Міська клінічна лікарня № 1" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'Генератори', fuelDays: '40%', heating: 'наявне', water: 'власна свердловина', waterReserve: '9000 л', contact: 'Лящук В.М. 0989450405', lat: 46.4620, lng: 30.7520 },
+            { id: 27, name: 'КНП "Міська лікарня № 5" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори', fuelDays: '-', heating: 'відсутнє', water: 'частково відсутнє', waterReserve: '137 куб', contact: 'Моспоненко В.В. 0989951203', lat: 46.4780, lng: 30.7380 },
+            { id: 28, name: 'КНП "Міська лікарня № 8" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '50%', heating: 'відсутнє, централізоване', water: 'частково відсутнє', waterReserve: '4000 л', contact: 'Мазепа С.Г. 0503150092', lat: 46.4320, lng: 30.7150 },
+            { id: 29, name: 'КНП "Міська клінічна лікарня № 10" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'генератор', fuelDays: '30%', heating: 'відсутнє', water: 'свердловина', waterReserve: 'необмежений', contact: 'Ошовський С. 0671655291', lat: 46.4150, lng: 30.7280 },
+            { id: 30, name: 'КНП "Міська клінічна лікарня № 11" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'генератори', fuelDays: '-', heating: 'частково', water: 'власна свердловина', waterReserve: '30000 л', contact: 'Гладченко О. 0679212393', lat: 46.4950, lng: 30.7620 },
+            { id: 31, name: 'КНП "Великомихайлівська багатопрофільна лікарня"', district: 'Роздільнянський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '10 діб', heating: 'власна котельня', water: 'власна свердловина', waterReserve: '2500 л', contact: 'Грабаровська О.І. 0955707337', lat: 47.5560, lng: 30.0520 },
+            { id: 32, name: 'КНП "Захарівська багатопрофільна лікарня"', district: 'Роздільнянський', network: 'Загальна', power: true, altPower: 'генератори, сонячні панелі', fuelDays: '7 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '4000 л', contact: 'Ганзій А.М 0507247345', lat: 47.0880, lng: 30.5010 },
+            { id: 33, name: 'КНП "Доброславська багатопрофільна лікарня"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератор, панелі', fuelDays: '5 діб', heating: 'централізоване', water: 'власна свердловина', waterReserve: '13 куб', contact: 'Старикович В.Ю. 0674270804', lat: 46.5520, lng: 30.3940 },
+            { id: 34, name: 'КНП "Любашівська багатопрофільна лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори, сонячні панелі', fuelDays: '7 діб', heating: 'власна котельня', water: 'власна свердловина', waterReserve: '4000 л', contact: 'Фомін Д.А. 0674896441', lat: 47.8390, lng: 30.2580 },
+            { id: 35, name: 'КНП "Центральна районна лікарня" Саф\'янівська', district: 'Ізмаїльський', network: 'Загальна', power: true, altPower: 'генератор, сонячні батареї, тесла', fuelDays: '27 діб', heating: 'власні котельні', water: 'централізоване, свердловина', waterReserve: '60 днів', contact: 'Догару М.Г. 0972487775', lat: 45.5180, lng: 28.7620 },
+            { id: 36, name: 'КНП "Кодимська лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори, сонячні панелі, ДБЖ', fuelDays: '20 діб', heating: 'альтернативне', water: 'власна свердловина', waterReserve: '5 т', contact: 'Волошина Л.І. 0967229937', lat: 48.1050, lng: 29.1320 },
+            { id: 37, name: 'КНП "Овідіопольська лікарня"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '5-7 діб', heating: 'власна котельня', water: 'централізовано', waterReserve: '3 т', contact: 'Салата Т.О. 0966148862', lat: 46.2490, lng: 30.4410 },
+            { id: 38, name: 'КНП "ЦРЛ Подільського району Куяльницької с.р."', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '20 діб', heating: 'централізоване', water: 'централізована', waterReserve: '7 тон', contact: 'Качан О.М. 0953204308', lat: 46.8178, lng: 30.3756 },
+            { id: 39, name: 'КНП "Савранська лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '5 діб', heating: 'власна', water: 'централізоване + свердловина', waterReserve: '1000 л', contact: 'Ткач С. 0679422414', lat: 48.1330, lng: 30.0870 },
+            { id: 40, name: 'КП "Саратська центральна лікарня"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'генератори, Tesla', fuelDays: '7 діб', heating: 'альтернативне', water: 'централізоване', waterReserve: '1.5 т', contact: 'Пакуленко О.В. 0966266520', lat: 46.0180, lng: 29.6730 },
+            { id: 41, name: 'КНП "Бессарабська багатопрофільна лікарня"', district: 'Болградський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '7 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '3 т', contact: 'Ротар С.І. 0982674276', lat: 46.2667, lng: 29.1667 },
+            { id: 42, name: 'КНП "Ширяївська ЦРЛ"', district: 'Березівський', network: 'Загальна', power: true, altPower: 'Генератор', fuelDays: '7 діб', heating: 'власна', water: 'власна', waterReserve: '20 т', contact: 'Бень В.В. 0934693305', lat: 47.3770, lng: 30.1910 },
+            { id: 43, name: 'КНП "Іванівський медичний центр"', district: 'Березівський', network: 'Загальна', power: true, altPower: 'генератор, Tesla', fuelDays: '5 діб', heating: 'альтернативне', water: 'альтернативне', waterReserve: '8000 л', contact: 'Мацкул Г.М. 0505170002', lat: 47.1500, lng: 30.8833 },
+            { id: 44, name: 'КНП "Дитяча міська клінічна лікарня № 3" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'Генератори, сонячні панелі, ДБЖ', fuelDays: '-', heating: 'централізоване', water: 'частково', waterReserve: '16700 л', contact: 'Бурега Л.М. 0964248612', lat: 46.4100, lng: 30.6950 },
+            { id: 45, name: 'КНП "Міська клінічна інфекційна лікарня" ОМР', district: 'Одеський', network: 'Загальна', power: true, altPower: 'Генератор, сонячні панелі', fuelDays: '-', heating: 'котельня ТГО', water: 'свердловина', waterReserve: '6 т', contact: 'Лаврюкова С.Я. 0503337959', lat: 46.4680, lng: 30.7030 },
+            { id: 46, name: 'КНП "Пологовий будинок № 5" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '10 год', heating: 'ні', water: 'резерв', waterReserve: '6 куб', contact: 'Кошевьоров Я.В. 0503922437', lat: 46.4534, lng: 30.7612 },
+            { id: 47, name: 'КНП "Міський психіатричний диспансер" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: 'є', heating: 'котельня', water: 'відсутня', waterReserve: '1400 л', contact: 'Снітко А.С. 0672948977', lat: 46.4723, lng: 30.7289 },
+            { id: 48, name: 'КНП "Одеський міський центр ВІЛ/СНІД" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори, інвертор', fuelDays: '-', heating: 'наявне', water: 'відсутня', waterReserve: '3 доби', contact: 'Козловський О. 0985809088', lat: 46.4612, lng: 30.7345 },
+            { id: 49, name: 'КНП "Дитячий КДЦ" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '-', heating: 'наявне', water: 'ні', waterReserve: '2 куб', contact: 'Пенчо Г.О. 0503912225', lat: 46.4720, lng: 30.7180 },
+            { id: 50, name: 'КНП "Таїровський КДЦ"', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори', fuelDays: '3 доби', heating: 'централізоване', water: 'централізоване', waterReserve: '2000 л', contact: 'Пасниниченко В. 0677333814', lat: 46.3720, lng: 30.6780 },
+            { id: 51, name: 'КНП "Великодолинський КДЦ"', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '5 діб', heating: 'власна котельня', water: 'відсутнє', waterReserve: '25000 л', contact: 'Бєлємук О.Л. 0972859399', lat: 46.3450, lng: 30.3280 },
+            { id: 52, name: 'КНП "КДЦ № 6" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '-', heating: 'відсутнє', water: 'відсутнє', waterReserve: '4000 л', contact: 'Ковальчук О. 0674844234', lat: 46.4380, lng: 30.7550 },
+            { id: 53, name: 'КНП "КДЦ № 20" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '5 діб', heating: 'відсутнє', water: 'відсутнє', waterReserve: '3000 л', contact: 'Телятнікова З.', lat: 46.4250, lng: 30.7620 },
+            { id: 54, name: 'КНП "КДЦ № 29" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '-', heating: 'котельня ООКЛ', water: 'відсутнє', waterReserve: '5000 л', contact: 'Стоянов А. 0972290902', lat: 46.4540, lng: 30.7450 },
+            { id: 55, name: 'КНП "Стоматологічна поліклініка № 3" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '7 діб', heating: 'централізоване', water: 'відсутнє', waterReserve: '5500 л', contact: 'Зелінський С. 0677752554', lat: 46.4660, lng: 30.7330 },
+            { id: 56, name: 'КНП "ДМП № 1" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератор 5кВт, 25кВт', fuelDays: '8 діб', heating: 'централізоване', water: 'централізоване', waterReserve: 'є', contact: 'Алулу А.О. 0672515330', lat: 46.4580, lng: 30.7220 },
+            { id: 57, name: 'КНП "ДМП № 2" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератор', fuelDays: '3 дні', heating: 'відсутнє', water: 'відсутнє', waterReserve: 'є', contact: 'Патраманська К.І. 0933857118', lat: 46.4810, lng: 30.7410 },
+            { id: 58, name: 'КНП "ДМП № 3" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератор', fuelDays: '5 діб', heating: 'централізоване', water: 'централізоване', waterReserve: 'є', contact: 'Мармусевич Л.В. 0662548255', lat: 46.4450, lng: 30.7080 },
+            { id: 59, name: 'КНП "ДМП № 4" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'дизельний генератор', fuelDays: '3 дні', heating: 'відсутність', water: 'є', waterReserve: 'є', contact: 'Васильчук О.І. 0965276850', lat: 46.4920, lng: 30.7480 },
+            { id: 60, name: 'КНП "ДМП № 5" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератор', fuelDays: '-', heating: 'відсутнє', water: 'відсутнє', waterReserve: 'є', contact: 'Бондаренко Н.Л. 0677630440', lat: 46.4050, lng: 30.7190 },
+            { id: 61, name: 'КНП "ДМП № 6" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Гібридна сонячна станція', fuelDays: '-', heating: 'відсутнє', water: 'відсутнє', waterReserve: 'є', contact: 'Горіщак С. 0505840503', lat: 46.4390, lng: 30.6980 },
+            { id: 62, name: 'КНП "ДМП № 7" ОМР', district: 'Одеський', network: 'Загальна', power: true, altPower: 'Генератор', fuelDays: '5-7 днів', heating: 'централізоване', water: 'централізоване', waterReserve: '3 доби', contact: 'Райлян Н. 0679565438', lat: 46.4734, lng: 30.7523 },
+            { id: 63, name: 'КНП "Затоківська амбулаторія"', district: 'Білгород-Дністровський', network: 'Загальна', power: false, altPower: 'Генератор', fuelDays: '5 діб', heating: 'альтернативне', water: 'централізоване', waterReserve: '500 л', contact: 'Пую І. 0681719005', lat: 46.0760, lng: 30.4690 },
+            { id: 64, name: 'КНП "Грибівська амбулаторія"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '5 діб', heating: 'власна котельня', water: 'свердловина', waterReserve: '2 куб', contact: 'Плохотнюк П. 0679372845', lat: 46.3580, lng: 30.5210 },
+            { id: 65, name: 'КНП "Андрієво-Іванівська АЗПСМ"', district: 'Березівський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '5 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '10 куб', contact: 'Коновалова С.В 0680396744', lat: 47.3150, lng: 30.8420 },
+            { id: 66, name: 'КНП "Березівський міський ЦПМСД"', district: 'Березівський', network: 'Загальна', power: true, altPower: 'Генератори', fuelDays: '5 діб', heating: 'наявне', water: 'наявне', waterReserve: '3 доби', contact: 'Горак Т.О. 0962773462', lat: 47.2080, lng: 30.9250 },
+            { id: 67, name: 'КНП "Татарбунарський ЦПМСД"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'генератор', fuelDays: '7 діб', heating: 'місцеві котельні', water: 'наявне', waterReserve: '5 днів', contact: 'Стогній С.В. 0962601962', lat: 45.8460, lng: 29.6150 },
+            { id: 68, name: 'КП "Саратський ЦПМСД"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'Генератори', fuelDays: '10 діб', heating: 'централізоване', water: 'централізоване', waterReserve: '2 дні', contact: 'Грибенко С.І. 0971896450', lat: 46.0230, lng: 29.6680 },
+            { id: 69, name: 'КНП "Любашівський ЦПМСД"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'Так', fuelDays: '2 доби', heating: 'котельня', water: 'свердловина', waterReserve: '2 доби', contact: 'Білоус Л.Л. 0633886450', lat: 47.8420, lng: 30.2640 },
+            { id: 70, name: 'КНП "ЦПМСД Куяльницької с.р."', district: 'Подільський', network: 'Загальна', power: true, altPower: 'Генератори', fuelDays: '5 діб', heating: 'централізоване', water: 'централізоване', waterReserve: '2205 л', contact: 'Серединська Т.В. 0668838347', lat: 46.8020, lng: 30.6920 },
+            { id: 71, name: 'КНП "ЦПМСД Подільської м.р."', district: 'Подільський', network: 'Загальна', power: true, altPower: 'Генератори', fuelDays: '7 діб', heating: 'котельня', water: 'централізоване', waterReserve: '2000 л', contact: 'Мемей Л.О. 0957166223', lat: 47.7540, lng: 29.5410 },
+            { id: 72, name: 'КНП "Цебриківський ЦПМСД"', district: 'Роздільнянський', network: 'Загальна', power: true, altPower: '2 генератора', fuelDays: '7 діб', heating: 'власна котельня', water: 'свердловина', waterReserve: 'так', contact: 'Платонова Л.В. 0967459159', lat: 46.9380, lng: 30.3940 },
+            { id: 73, name: 'КП "Захарівський ЦПМСД"', district: 'Роздільнянський', network: 'Загальна', power: false, altPower: 'генератор, панелі', fuelDays: '5 діб', heating: 'власна котельня', water: 'централізоване', waterReserve: '400 л', contact: '-', lat: 47.0920, lng: 30.5060 },
+            { id: 74, name: 'КНП "Затишанський ЦПМСД"', district: 'Роздільнянський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '2 тижні', heating: 'власна котельня', water: 'централізоване', waterReserve: 'є', contact: 'Лисакова Т.В. 0933479203', lat: 46.9012, lng: 30.2567 },
+            { id: 75, name: 'КНП "Дивізійський ЦПМСД"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'Генератори', fuelDays: '10 діб', heating: 'власна котельня', water: 'наявне', waterReserve: '20 діб', contact: 'Бакуменко Л. 0682726947', lat: 46.0345, lng: 30.1234 },
+            { id: 76, name: 'КНП "ЦПМСД № 2" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '10 діб', heating: 'наявне', water: 'відсутнє', waterReserve: '1000 л', contact: 'Котляревська Л.В. 0672750106', lat: 46.4470, lng: 30.7380 },
+            { id: 77, name: 'КНП "ЦПМСД № 3" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '7 діб', heating: 'частково', water: 'частково', waterReserve: '7 днів', contact: 'Скальська Н.Г. 0676507019', lat: 46.4850, lng: 30.7140 },
+            { id: 78, name: 'КНП "ЦПМСД № 5" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '7 діб', heating: 'частково', water: 'відсутнє', waterReserve: '2000 л', contact: 'Атрощенко О.П. 0772786', lat: 46.4623, lng: 30.7456 },
+            { id: 79, name: 'КНП "ЦПМСД № 16" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '4 дні', heating: 'відсутнє', water: 'відсутнє', waterReserve: '4000 л', contact: 'Хромченко О.І. 0963681039', lat: 46.4180, lng: 30.7350 },
+            { id: 80, name: 'КНП "ЦПМСД № 18" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори', fuelDays: '7 діб', heating: 'частково', water: 'частково', waterReserve: '1000 л', contact: 'Білий Є.Л. 0674859558', lat: 46.4020, lng: 30.7520 },
+            { id: 81, name: 'КНП "Теплодарський ЦПМСД"', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: '5 діб', heating: 'централізоване', water: 'централізоване', waterReserve: '760 л', contact: 'Цимбалюк О.А. 0974962775', lat: 46.4970, lng: 30.3320 },
+            { id: 82, name: 'КНП "ЦПМСД Красносільської с.р."', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '5 діб', heating: 'електроопалення', water: 'відсутнє', waterReserve: '2 дні', contact: '-', lat: 46.6730, lng: 30.4680 },
+            { id: 83, name: 'КНП "Усатівський ЦПМСД"', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', fuelDays: 'є', heating: 'відсутнє', water: 'відсутнє', waterReserve: 'є', contact: 'Осідач В. 0976218138', lat: 46.5234, lng: 30.3012 },
+            { id: 84, name: 'КНП "ЦПМСД Яськівської с.р."', district: 'Одеський', network: 'Загальна', power: false, altPower: 'Генератори, сонячні панелі', fuelDays: '5 діб', heating: 'власна котельня', water: 'наявність', waterReserve: '2000 л', contact: 'Курко Д.В. 0960932774', lat: 46.5690, lng: 30.1780 },
+            { id: 85, name: 'КНП "Овідіопольський ЦПМСД"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'Генератори', fuelDays: '5 діб', heating: 'котельня', water: 'наявне', waterReserve: '300 л', contact: 'Кабальська О.Л.', lat: 46.2540, lng: 30.4470 },
+            { id: 86, name: 'КНП "Чорноморський ЦПМСД"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератори', fuelDays: '60 днів', heating: 'централізоване', water: 'резервуари ЖКГ', waterReserve: 'ні', contact: 'Усенко Г.М. 0977434473', lat: 46.3089, lng: 30.6534 },
+            { id: 87, name: 'КНП "Кодимський ЦПМСД"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератор', fuelDays: '14 днів', heating: 'так', water: 'так', waterReserve: '300 л', contact: 'Алтухова О.О. 0987290505', lat: 48.0945, lng: 29.1256 },
+        ];
+
+        // ============ MAP SETUP ============
+        const tileLayers = {
+            light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        };
+
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        let currentTileLayer = null;
+        let districtCircles = [];
+        let showDistricts = true;
+
+        const map = L.map('map').setView([46.5, 29.8], 7);
+        
+        currentTileLayer = L.tileLayer(tileLayers[currentTheme], {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // ============ DISTRICT RECTANGLES ============
+        function getDistrictColor(status) {
+            switch(status) {
+                case 'power': return '#fbbf24';
+                case 'partial': return '#fb923c';
+                case 'no-power': return '#60a5fa';
+                default: return '#94a3b8';
+            }
+        }
+
+        function createDistrictCircles() {
+            districtCircles.forEach(c => map.removeLayer(c));
+            districtCircles = [];
+            
+            districts.forEach(d => {
+                const districtFacilities = facilities.filter(f => f.district === d.name);
+                const total = districtFacilities.length;
+                const withPower = districtFacilities.filter(f => f.power).length;
+                
+                // Розмір квадрата залежить від розміру району
+                const size = d.size || 0.35;
+                const bounds = [
+                    [d.lat - size, d.lng - size * 1.3],
+                    [d.lat + size, d.lng + size * 1.3]
+                ];
+                
+                const rect = L.rectangle(bounds, {
+                    fillColor: getDistrictColor(d.status),
+                    fillOpacity: 0.5,
+                    color: '#ffffff',
+                    weight: 3,
+                    opacity: 0.9
+                });
+                
+                const statusText = d.status === 'power' ? 'Є світло' : d.status === 'partial' ? 'Частково' : 'Немає світла';
+                
+                rect.bindTooltip(`
+                    <div style="text-align:center;">
+                        <strong>${d.name}</strong><br>
+                        <span style="color: ${getDistrictColor(d.status)}; font-weight: 600;">${statusText}</span><br>
+                        👥 ${d.population} тис. населення<br>
+                        🏥 ${total} закладів<br>
+                        ⚡ ${withPower}/${total} зі світлом
+                    </div>
+                `, { sticky: false, direction: 'top' });
+                
+                rect.on('click', () => {
+                    document.getElementById('district-filter').value = d.name;
+                    filterFacilities();
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.querySelector('[data-tab="facilities"]').classList.add('active');
+                    document.getElementById('facilities-tab').classList.add('active');
+                    highlightDistrictCard(d.name);
+                });
+                
+                if (showDistricts) {
+                    rect.addTo(map);
+                }
+                districtCircles.push(rect);
+            });
+        }
+
+        // ============ MARKERS ============
+        const markers = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+
+        let markerMap = {};
+
+        function createMarkerIcon(facility) {
+            const powerClass = facility.power ? 'power-on' : 'power-off';
+            let sizeClass = '';
+            let size = 28;
+            
+            if (facility.network === 'Надкластерна') { sizeClass = 'nadklusterna'; size = 34; }
+            else if (facility.network === 'Кластерна') { sizeClass = 'klusterna'; size = 31; }
+            
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div class="marker-icon ${powerClass} ${sizeClass}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        ${facility.power ? '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>' : '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" opacity="0.5"/><line x1="1" y1="1" x2="23" y2="23"/>'}
+                    </svg>
+                </div>`,
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2]
+            });
+        }
+
+        function createPopupContent(f) {
+            return `
+                <div class="popup-content">
+                    <div class="popup-header">
+                        <div class="popup-power ${f.power ? 'on' : 'off'}">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        </div>
+                        <div class="popup-title">${f.name}</div>
+                    </div>
+                    <div class="popup-meta">
+                        <span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${f.district}</span>
+                        <span class="network-badge ${f.network === 'Надкластерна' ? 'nadklusterna' : f.network === 'Кластерна' ? 'klusterna' : 'zagalna'}">${f.network}</span>
+                    </div>
+                    <div class="popup-details">
+                        <div class="popup-detail"><div class="popup-detail-label">Альт. живлення</div><div class="popup-detail-value">${f.altPower}</div></div>
+                        <div class="popup-detail"><div class="popup-detail-label">Запас палива</div><div class="popup-detail-value">${f.fuelDays}</div></div>
+                        <div class="popup-detail"><div class="popup-detail-label">Опалення</div><div class="popup-detail-value">${f.heating}</div></div>
+                        <div class="popup-detail"><div class="popup-detail-label">Вода</div><div class="popup-detail-value">${f.water}</div></div>
+                    </div>
+                    ${f.contact && f.contact !== '-' ? `<div class="popup-contact"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${f.contact}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function createMarkers() {
+            markers.clearLayers();
+            markerMap = {};
+            
+            facilities.forEach(f => {
+                const marker = L.marker([f.lat, f.lng], { icon: createMarkerIcon(f) });
+                marker.bindPopup(createPopupContent(f), { maxWidth: 320 });
+                marker.facilityId = f.id;
+                markers.addLayer(marker);
+                markerMap[f.id] = marker;
+            });
+        }
+
+        createMarkers();
+        map.addLayer(markers);
+        createDistrictCircles();
+
+        // ============ THEME ============
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            currentTheme = theme;
+            
+            if (currentTileLayer && map) {
+                map.removeLayer(currentTileLayer);
+                currentTileLayer = L.tileLayer(tileLayers[theme], {
+                    attribution: '&copy; OpenStreetMap &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(map);
+            }
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+        setTheme(currentTheme);
+
+        // ============ DISTRICT TOGGLE ============
+        document.getElementById('district-toggle').addEventListener('click', function() {
+            showDistricts = !showDistricts;
+            this.classList.toggle('active', showDistricts);
+            
+            districtCircles.forEach(c => {
+                if (showDistricts) c.addTo(map);
+                else map.removeLayer(c);
+            });
+        });
+
+        // ============ TABS ============
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            });
+        });
+
+        // ============ DISTRICTS LIST ============
+        function renderDistrictsList() {
+            const listEl = document.getElementById('districts-list');
+            listEl.innerHTML = '';
+            
+            districts.forEach(d => {
+                const districtFacilities = facilities.filter(f => f.district === d.name);
+                const total = districtFacilities.length;
+                const withPower = districtFacilities.filter(f => f.power).length;
+                
+                const card = document.createElement('div');
+                card.className = 'district-card';
+                card.dataset.name = d.name;
+                
+                const statusText = d.status === 'power' ? 'Є світло' : d.status === 'partial' ? 'Частково' : 'Немає світла';
+                
+                card.innerHTML = `
+                    <div class="district-header">
+                        <div class="district-name">${d.name}</div>
+                        <div class="district-status ${d.status}">${statusText}</div>
+                    </div>
+                    <div class="district-stats">
+                        <div class="district-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>${d.population} тис.</div>
+                        <div class="district-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>${total}</div>
+                        <div class="district-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>${withPower}/${total}</div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.district-card').forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+                    map.setView([d.lat, d.lng], 9);
+                    document.getElementById('district-filter').value = d.name;
+                    filterFacilities();
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.querySelector('[data-tab="facilities"]').classList.add('active');
+                    document.getElementById('facilities-tab').classList.add('active');
+                });
+                
+                listEl.appendChild(card);
+            });
+        }
+
+        function highlightDistrictCard(name) {
+            document.querySelectorAll('.district-card').forEach(c => {
+                c.classList.toggle('active', c.dataset.name === name);
+            });
+        }
+
+        // ============ FACILITIES ============
+        function populateDistrictFilter() {
+            const districtSelect = document.getElementById('district-filter');
+            districtSelect.innerHTML = '<option value="all">Всі райони</option>';
+            districts.forEach(d => {
+                const option = document.createElement('option');
+                option.value = d.name;
+                option.textContent = d.name;
+                districtSelect.appendChild(option);
+            });
+        }
+
+        function updateStats(filtered) {
+            document.getElementById('total-count').textContent = filtered.length;
+            document.getElementById('power-on-count').textContent = filtered.filter(f => f.power).length;
+            document.getElementById('power-off-count').textContent = filtered.filter(f => !f.power).length;
+            document.getElementById('results-count').textContent = filtered.length;
+        }
+
+        function renderFacilitiesList(filtered) {
+            const listEl = document.getElementById('facilities-list');
+            listEl.innerHTML = '';
+            
+            filtered.forEach(f => {
+                const card = document.createElement('div');
+                card.className = `facility-card ${f.power ? 'has-power' : 'no-power'}`;
+                card.dataset.id = f.id;
+                
+                card.innerHTML = `
+                    <div class="facility-header">
+                        <div class="power-indicator ${f.power ? 'on' : 'off'}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        </div>
+                        <div class="facility-name">${f.name}</div>
+                    </div>
+                    <div class="facility-meta">
+                        <span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${f.district}</span>
+                        <span class="network-badge ${f.network === 'Надкластерна' ? 'nadklusterna' : f.network === 'Кластерна' ? 'klusterna' : 'zagalna'}">${f.network}</span>
+                    </div>
+                    <div class="facility-details">
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="detail-label">Альт. живлення</div><div class="detail-value">${f.altPower}</div></div>
+                            <div class="detail-item"><div class="detail-label">Запас палива</div><div class="detail-value">${f.fuelDays}</div></div>
+                            <div class="detail-item"><div class="detail-label">Опалення</div><div class="detail-value">${f.heating}</div></div>
+                            <div class="detail-item"><div class="detail-label">Вода</div><div class="detail-value">${f.water}</div></div>
+                        </div>
+                        ${f.contact && f.contact !== '-' ? `<div class="contact-info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${f.contact}</div>` : ''}
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.facility-card').forEach(c => {
+                        if (c !== card) c.classList.remove('expanded', 'active');
+                    });
+                    card.classList.toggle('expanded');
+                    card.classList.toggle('active');
+                    
+                    const marker = markerMap[f.id];
+                    if (marker) {
+                        markers.zoomToShowLayer(marker, () => marker.openPopup());
+                    }
+                });
+                
+                listEl.appendChild(card);
+            });
+        }
+
+        function filterFacilities() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const powerFilter = document.getElementById('power-filter').value;
+            const districtFilter = document.getElementById('district-filter').value;
+            const networkFilter = document.getElementById('network-filter').value;
+            
+            const filtered = facilities.filter(f => {
+                const matchesSearch = f.name.toLowerCase().includes(searchTerm);
+                const matchesPower = powerFilter === 'all' || (powerFilter === 'on' && f.power) || (powerFilter === 'off' && !f.power);
+                const matchesDistrict = districtFilter === 'all' || f.district === districtFilter;
+                const matchesNetwork = networkFilter === 'all' || f.network === networkFilter;
+                return matchesSearch && matchesPower && matchesDistrict && matchesNetwork;
+            });
+            
+            updateStats(filtered);
+            renderFacilitiesList(filtered);
+            
+            markers.clearLayers();
+            filtered.forEach(f => {
+                const marker = L.marker([f.lat, f.lng], { icon: createMarkerIcon(f) });
+                marker.bindPopup(createPopupContent(f), { maxWidth: 320 });
+                marker.facilityId = f.id;
+                markers.addLayer(marker);
+                markerMap[f.id] = marker;
+            });
+        }
+
+        document.getElementById('search-input').addEventListener('input', filterFacilities);
+        document.getElementById('power-filter').addEventListener('change', filterFacilities);
+        document.getElementById('district-filter').addEventListener('change', filterFacilities);
+        document.getElementById('network-filter').addEventListener('change', filterFacilities);
+
+        // ============ GOOGLE SHEETS INTEGRATION ============
+        let autoRefreshTimer = null;
+        let isAutoRefreshEnabled = false;
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+                
+                const row = {};
+                headers.forEach((h, idx) => {
+                    row[h] = values[idx] || '';
+                });
+                data.push(row);
+            }
+            
+            return data;
+        }
+
+        async function loadFromGoogleSheets(silent = false) {
+            if (GOOGLE_SHEET_ID === 'YOUR_GOOGLE_SHEET_ID_HERE') {
+                if (!silent) showToast('Вкажіть ID Google Таблиці в коді', 'error');
+                return false;
+            }
+            
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (!silent) refreshBtn.classList.add('loading');
+            
+            try {
+                // Додаємо timestamp щоб уникнути кешування
+                const timestamp = new Date().getTime();
+                const url = `${getFacilitiesUrl()}&_t=${timestamp}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Не вдалося завантажити дані');
+                
+                const csv = await response.text();
+                const data = parseCSV(csv);
+                
+                if (data.length > 0) {
+                    facilities = data.map((row, idx) => ({
+                        id: idx + 1,
+                        name: row.name || row['Назва'] || row['Найменування'] || '',
+                        district: row.district || row['Район'] || '',
+                        network: row.network || row['Мережа'] || 'Загальна',
+                        power: (row.power || row['Світло'] || row['Електропостачання'] || '').toLowerCase() === 'true' || 
+                               (row.power || row['Світло'] || row['Електропостачання'] || '').toLowerCase() === 'так' ||
+                               row.power === '1',
+                        altPower: row.altPower || row['Альт_живлення'] || row['Альтернативне'] || '-',
+                        fuelDays: row.fuelDays || row['Запас_палива'] || row['Паливо'] || '-',
+                        heating: row.heating || row['Опалення'] || '-',
+                        water: row.water || row['Вода'] || row['Водопостачання'] || '-',
+                        waterReserve: row.waterReserve || row['Запас_води'] || '-',
+                        contact: row.contact || row['Контакт'] || row['Відповідальний'] || '-',
+                        lat: parseFloat(row.lat || row['Широта']) || 46.45,
+                        lng: parseFloat(row.lng || row['Довгота']) || 30.55
+                    }));
+                    
+                    // Спробуємо завантажити статуси районів
+                    try {
+                        const districtsUrl = `${getDistrictsUrl()}&_t=${timestamp}`;
+                        const distResponse = await fetch(districtsUrl);
+                        if (distResponse.ok) {
+                            const distCsv = await distResponse.text();
+                            const distData = parseCSV(distCsv);
+                            if (distData.length > 0) {
+                                distData.forEach(row => {
+                                    const name = row.name || row['Район'] || row['Назва'];
+                                    const district = districts.find(d => d.name === name);
+                                    if (district) {
+                                        district.status = row.status || row['Статус'] || district.status;
+                                    }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        // Якщо немає аркуша районів - використовуємо дефолтні
+                    }
+                    
+                    createMarkers();
+                    createDistrictCircles();
+                    populateDistrictFilter();
+                    renderDistrictsList();
+                    filterFacilities();
+                    
+                    const now = new Date();
+                    document.getElementById('data-date').textContent = now.toLocaleString('uk-UA', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                    
+                    if (!silent) showToast(`Оновлено: ${facilities.length} закладів`, 'success');
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error loading from Google Sheets:', error);
+                if (!silent) showToast('Помилка завантаження даних', 'error');
+                return false;
+            } finally {
+                if (!silent) refreshBtn.classList.remove('loading');
+            }
+            return false;
+        }
+        
+        function toggleAutoRefresh() {
+            isAutoRefreshEnabled = !isAutoRefreshEnabled;
+            const autoBtn = document.getElementById('auto-refresh-btn');
+            
+            if (isAutoRefreshEnabled) {
+                autoBtn.classList.add('active');
+                autoBtn.title = 'Автооновлення увімкнено (кожні 5 хв)';
+                loadFromGoogleSheets(true); // Перше завантаження
+                autoRefreshTimer = setInterval(() => loadFromGoogleSheets(true), AUTO_REFRESH_INTERVAL);
+                showToast('Автооновлення увімкнено', 'success');
+            } else {
+                autoBtn.classList.remove('active');
+                autoBtn.title = 'Увімкнути автооновлення';
+                if (autoRefreshTimer) {
+                    clearInterval(autoRefreshTimer);
+                    autoRefreshTimer = null;
+                }
+                showToast('Автооновлення вимкнено', 'success');
+            }
+        }
+
+        document.getElementById('refresh-btn').addEventListener('click', () => loadFromGoogleSheets(false));
+        
+        // Автооновлення при старті, якщо є ID таблиці
+        if (GOOGLE_SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID_HERE') {
+            loadFromGoogleSheets(true);
+        }
+
+        // ============ INIT ============
+        populateDistrictFilter();
+        renderDistrictsList();
+        updateStats(facilities);
+        renderFacilitiesList(facilities);
+    </script>
+</body>
+</html>
