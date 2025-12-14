@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оперативна карта ЗОЗ • Одеська область</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        :root {
+            --bg-primary: #f8fafc; --bg-secondary: #ffffff; --bg-tertiary: #f1f5f9;
+            --bg-hover: #e2e8f0; --border-color: #e2e8f0;
+            --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #64748b;
+            --accent-green: #10b981; --accent-green-bg: rgba(16, 185, 129, 0.1);
+            --accent-red: #ef4444; --accent-red-bg: rgba(239, 68, 68, 0.1);
+            --accent-blue: #3b82f6; --accent-blue-bg: rgba(59, 130, 246, 0.1);
+            --accent-orange: #f97316; --accent-orange-bg: rgba(249, 115, 22, 0.1);
+            --accent-yellow: #eab308; --accent-yellow-bg: rgba(234, 179, 8, 0.1);
+            --accent-purple: #8b5cf6; --accent-purple-bg: rgba(139, 92, 246, 0.1);
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.1); --popup-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        [data-theme="dark"] {
+            --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155;
+            --bg-hover: #475569; --border-color: #334155;
+            --text-primary: #f1f5f9; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); }
+        .dashboard { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Header */
+        .header { background: var(--bg-secondary); padding: 10px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .logo { width: 44px; height: 44px; background: linear-gradient(135deg, #f97316, #ea580c); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 14px; }
+        .header h1 { font-size: 18px; font-weight: 700; }
+        .header-date { font-size: 12px; color: var(--text-muted); }
+        .header-right { display: flex; align-items: center; gap: 6px; }
+        .header-btn { display: flex; align-items: center; gap: 4px; padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .header-btn:hover { background: var(--bg-hover); }
+        .header-btn.active { background: var(--accent-green); color: white; border-color: var(--accent-green); }
+        .header-btn svg { width: 16px; height: 16px; }
+        
+        /* Stats Bar - BIGGER */
+        .stats-bar { background: var(--bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+        .stat-group { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--bg-tertiary); border-radius: 10px; }
+        .stat-item { display: flex; align-items: center; gap: 6px; }
+        .stat-value { font-weight: 800; font-size: 22px; }
+        .stat-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .stat-sub { font-size: 11px; color: var(--text-muted); }
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.red { color: var(--accent-red); }
+        .stat-value.orange { color: var(--accent-orange); }
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.purple { color: var(--accent-purple); }
+        .stat-divider { width: 1px; height: 40px; background: var(--border-color); }
+        
+        .stat-network { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 14px; border-radius: 10px; min-width: 100px; }
+        .stat-network.nadklusterna { background: var(--accent-purple-bg); border: 1px solid rgba(139, 92, 246, 0.3); }
+        .stat-network.klusterna { background: var(--accent-blue-bg); border: 1px solid rgba(59, 130, 246, 0.3); }
+        .stat-network.zagalna { background: var(--bg-tertiary); border: 1px solid var(--border-color); }
+        .stat-network-name { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .stat-network-name.purple { color: var(--accent-purple); }
+        .stat-network-name.blue { color: var(--accent-blue); }
+        .stat-network-count { font-size: 20px; font-weight: 800; }
+        .stat-network-power { font-size: 12px; display: flex; gap: 4px; align-items: center; }
+        .stat-network-power .label { color: var(--text-muted); font-size: 10px; }
+        
+        /* Main Content */
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        .map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
+        
+        /* Sidebar */
+        .sidebar { width: 450px; background: var(--bg-secondary); border-left: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; }
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab { flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+        .tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+        .tab-content { display: none; flex: 1; overflow-y: auto; }
+        .tab-content.active { display: block; }
+        
+        /* Filters - Extended */
+        .filters { padding: 10px; border-bottom: 1px solid var(--border-color); max-height: 280px; overflow-y: auto; }
+        .search-box { position: relative; margin-bottom: 8px; }
+        .search-box input { width: 100%; padding: 10px 12px 10px 36px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none; }
+        .search-box input:focus { border-color: var(--accent-blue); }
+        .search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; }
+        
+        .filter-section { margin-bottom: 8px; }
+        .filter-section-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+        .filter-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+        .filter-row select { flex: 1; min-width: 90px; padding: 6px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 10px; cursor: pointer; outline: none; }
+        .filter-row select:focus { border-color: var(--accent-blue); }
+        
+        .results-count { padding: 8px 12px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary); }
+        
+        /* District & Facility Cards */
+        .districts-list, .facilities-list { padding: 10px; }
+        .district-card { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .district-card:hover { border-color: var(--text-muted); transform: translateY(-1px); }
+        .district-card.status-power { border-left: 4px solid var(--accent-yellow); }
+        .district-card.status-partial { border-left: 4px solid var(--accent-orange); }
+        .district-card.status-no-power { border-left: 4px solid var(--accent-blue); }
+        .district-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .district-name { font-weight: 700; font-size: 14px; }
+        .district-status { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+        .district-status.power { background: var(--accent-yellow-bg); color: var(--accent-yellow); }
+        .district-status.partial { background: var(--accent-orange-bg); color: var(--accent-orange); }
+        .district-status.no-power { background: var(--accent-blue-bg); color: var(--accent-blue); }
+        .district-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+        .district-stat { background: var(--bg-secondary); padding: 6px 8px; border-radius: 6px; font-size: 11px; }
+        .district-stat-label { color: var(--text-muted); margin-bottom: 2px; font-size: 10px; }
+        .district-stat-value { font-weight: 600; }
+        .district-stat-value .green { color: var(--accent-green); }
+        .district-stat-value .red { color: var(--accent-red); }
+        .district-network { display: flex; gap: 4px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border-color); }
+        .network-tag { padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; }
+        .network-tag.nadklusterna { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+        .network-tag.klusterna { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .network-tag.zagalna { background: var(--bg-hover); color: var(--text-muted); }
+        
+        .facility-card { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s; }
+        .facility-card:hover { border-color: var(--text-muted); }
+        .facility-card.has-power { border-left: 3px solid var(--accent-green); }
+        .facility-card.no-power { border-left: 3px solid var(--accent-red); }
+        .facility-card.critical { background: var(--accent-orange-bg); }
+        .facility-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+        .power-indicator { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .power-indicator.on { background: var(--accent-green-bg); color: var(--accent-green); }
+        .power-indicator.off { background: var(--accent-red-bg); color: var(--accent-red); }
+        .facility-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+        .facility-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+        .meta-item { display: flex; align-items: center; gap: 3px; }
+        .meta-item.critical { color: var(--accent-orange); font-weight: 600; }
+        .meta-item.warning { color: var(--accent-red); }
+        
+        /* Legend */
+        .legend { position: absolute; bottom: 20px; left: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; box-shadow: var(--card-shadow); font-size: 11px; z-index: 1000; }
+        .legend-title { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 9px; margin-bottom: 6px; }
+        .legend-section { margin-bottom: 10px; }
+        .legend-section:last-child { margin-bottom: 0; }
+        .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+        .legend-color { width: 18px; height: 10px; border-radius: 2px; }
+        .legend-marker { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+        
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 12px 20px; border-radius: 10px; box-shadow: var(--popup-shadow); font-size: 13px; z-index: 2000; opacity: 0; transition: all 0.3s; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        
+        /* Popup */
+        .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; }
+        .leaflet-popup-content { margin: 0; min-width: 300px; max-width: 350px; }
+        .popup-content { padding: 14px; font-size: 11px; }
+        .popup-header { margin-bottom: 10px; }
+        .popup-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+        .popup-subtitle { font-size: 11px; color: var(--text-muted); }
+        .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+        .popup-stat { background: var(--bg-tertiary); padding: 6px 8px; border-radius: 6px; }
+        .popup-stat-label { color: var(--text-muted); font-size: 9px; }
+        .popup-stat-value { font-weight: 600; font-size: 11px; }
+        .popup-section { background: var(--bg-tertiary); padding: 8px; border-radius: 6px; margin-bottom: 8px; }
+        .popup-section-title { font-weight: 600; margin-bottom: 4px; font-size: 10px; color: var(--text-secondary); }
+        .popup-section-content { font-size: 10px; line-height: 1.5; }
+        .popup-critical { background: #fff3cd; padding: 8px; border-radius: 6px; font-size: 10px; margin-bottom: 8px; border-left: 3px solid #f97316; }
+        .popup-contact { font-size: 11px; color: var(--text-muted); }
+        
+        @media (max-width: 1000px) { 
+            .sidebar { width: 100%; height: 45%; border-left: none; border-top: 1px solid var(--border-color); } 
+            .main-content { flex-direction: column; } 
+            .stats-bar { overflow-x: auto; flex-wrap: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">ЗОЗ</div>
+                <div>
+                    <h1>Оперативна карта закладів охорони здоров'я</h1>
+                    <div class="header-date">Одеська область • Дані: <span id="data-date">13.12.2025</span></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="reset-view-btn" title="Скинути все"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span>Скинути все</span></button>
+                <button class="header-btn" id="toggle-districts-btn" title="Показати/приховати райони"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Райони</span></button>
+                <button class="header-btn" id="fit-map-btn" title="Вся карта"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><span>Вся карта</span></button>
+                <button class="header-btn" id="refresh-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span>Оновити</span></button>
+                <button class="header-btn" id="auto-refresh-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Авто</span></button>
+                <button class="header-btn" id="theme-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/></svg></button>
+            </div>
+        </div>
+        
+        <!-- Stats Bar - BIGGER -->
+        <div class="stats-bar">
+            <div class="stat-group">
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-total">38</div>
+                    <div><div class="stat-label">Всього</div><div class="stat-sub">закладів</div></div>
+                </div>
+            </div>
+            <div class="stat-group">
+                <div class="stat-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <div class="stat-value green" id="stat-power">21</div>
+                    <div><div class="stat-label">Зі світлом</div></div>
+                </div>
+                <div class="stat-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
+                    <div class="stat-value red" id="stat-no-power">17</div>
+                    <div><div class="stat-label">Без світла</div></div>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-group">
+                <div class="stat-item">
+                    <div class="stat-value blue" id="stat-patients">633</div>
+                    <div><div class="stat-label">Важкохворих</div></div>
+                </div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-network nadklusterna">
+                <div class="stat-network-name purple">Надкластерна</div>
+                <div class="stat-network-count" id="stat-nadk-total">3</div>
+                <div class="stat-network-power">
+                    <span class="green" id="stat-nadk-power">0</span>
+                    <span class="label">зі світлом</span>
+                    <span>/</span>
+                    <span class="red" id="stat-nadk-nopower">3</span>
+                    <span class="label">без</span>
+                </div>
+            </div>
+            <div class="stat-network klusterna">
+                <div class="stat-network-name blue">Кластерна</div>
+                <div class="stat-network-count" id="stat-klus-total">13</div>
+                <div class="stat-network-power">
+                    <span class="green" id="stat-klus-power">4</span>
+                    <span class="label">зі світлом</span>
+                    <span>/</span>
+                    <span class="red" id="stat-klus-nopower">9</span>
+                    <span class="label">без</span>
+                </div>
+            </div>
+            <div class="stat-network zagalna">
+                <div class="stat-network-name">Загальна</div>
+                <div class="stat-network-count" id="stat-zag-total">22</div>
+                <div class="stat-network-power">
+                    <span class="green" id="stat-zag-power">17</span>
+                    <span class="label">зі світлом</span>
+                    <span>/</span>
+                    <span class="red" id="stat-zag-nopower">5</span>
+                    <span class="label">без</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="legend">
+                    <div class="legend-section">
+                        <div class="legend-title">Райони</div>
+                        <div class="legend-item"><div class="legend-color" style="background: rgba(234, 179, 8, 0.4); border: 2px solid #eab308;"></div><span>Є світло</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: rgba(249, 115, 22, 0.4); border: 2px solid #f97316;"></div><span>Частково</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: rgba(59, 130, 246, 0.4); border: 2px solid #3b82f6;"></div><span>Немає світла</span></div>
+                    </div>
+                    <div class="legend-section">
+                        <div class="legend-title">Заклади</div>
+                        <div class="legend-item"><div class="legend-marker"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#dcfce7" stroke="#10b981" stroke-width="2"/><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#10b981" transform="scale(0.5) translate(12,8)"/></svg></div><span>Зі світлом</span></div>
+                        <div class="legend-item"><div class="legend-marker"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#ef4444" transform="scale(0.5) translate(12,8)"/><line x1="5" y1="5" x2="19" y2="19" stroke="#ef4444" stroke-width="2"/></svg></div><span>Без світла</span></div>
+                        <div class="legend-item"><div class="legend-marker"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ffedd5" stroke="#f97316" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/></svg></div><span>Потреба в ресурсах</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="tabs">
+                    <div class="tab active" data-tab="districts">Райони</div>
+                    <div class="tab" data-tab="facilities">Заклади</div>
+                </div>
+                
+                <div class="tab-content active" id="districts-tab">
+                    <div class="districts-list" id="districts-list"></div>
+                </div>
+                
+                <div class="tab-content" id="facilities-tab">
+                    <div class="filters">
+                        <div class="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                            <input type="text" id="search-input" placeholder="Пошук за назвою...">
+                        </div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-section-title">Основні</div>
+                            <div class="filter-row">
+                                <select id="power-filter">
+                                    <option value="all">⚡ Світло: всі</option>
+                                    <option value="on">✓ Зі світлом</option>
+                                    <option value="off">✗ Без світла</option>
+                                </select>
+                                <select id="district-filter">
+                                    <option value="all">📍 Район: всі</option>
+                                </select>
+                                <select id="network-filter">
+                                    <option value="all">🏥 Мережа: всі</option>
+                                    <option value="Надкластерна">Надкластерна</option>
+                                    <option value="Кластерна">Кластерна</option>
+                                    <option value="Загальна">Загальна</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-section-title">Енергозабезпечення</div>
+                            <div class="filter-row">
+                                <select id="altpower-filter">
+                                    <option value="all">🔋 Альт.живлення: всі</option>
+                                    <option value="generator">Генератор</option>
+                                    <option value="solar">Сонячні панелі</option>
+                                    <option value="tesla">Tesla/Powerwall</option>
+                                    <option value="ups">ДБЖ</option>
+                                    <option value="none">Немає</option>
+                                </select>
+                                <select id="fuel-filter">
+                                    <option value="all">⛽ Запас палива: всі</option>
+                                    <option value="0">0 днів</option>
+                                    <option value="1-5">1-5 днів</option>
+                                    <option value="5+">Більше 5 днів</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-section-title">Комунікації</div>
+                            <div class="filter-row">
+                                <select id="heating-filter">
+                                    <option value="all">🔥 Опалення: всі</option>
+                                    <option value="central">Централізоване</option>
+                                    <option value="own">Власна котельня</option>
+                                    <option value="none">Немає</option>
+                                </select>
+                                <select id="water-filter">
+                                    <option value="all">💧 Водопостач.: всі</option>
+                                    <option value="central">Централізоване</option>
+                                    <option value="well">Власна свердловина</option>
+                                    <option value="none">Немає</option>
+                                </select>
+                                <select id="waterreserve-filter">
+                                    <option value="all">💧 Запас води: всі</option>
+                                    <option value="0">0 днів</option>
+                                    <option value="1-5">1-5 днів</option>
+                                    <option value="5+">Більше 5 днів</option>
+                                </select>
+                            </div>
+                            <div class="filter-row">
+                                <select id="connection-filter">
+                                    <option value="all">📡 Зв'язок: всі</option>
+                                    <option value="yes">Є</option>
+                                    <option value="no">Немає</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-section-title">Кисень та пацієнти</div>
+                            <div class="filter-row">
+                                <select id="oxygen-filter">
+                                    <option value="all">O₂ Центр.кисень: всі</option>
+                                    <option value="yes">Так</option>
+                                    <option value="no">Ні</option>
+                                </select>
+                                <select id="oxygenreserve-filter">
+                                    <option value="all">O₂ Запас: всі</option>
+                                    <option value="0">0 днів</option>
+                                    <option value="1-5">1-5 днів</option>
+                                    <option value="5+">Більше 5 днів</option>
+                                </select>
+                                <select id="patients-filter">
+                                    <option value="all">👥 Важкохворі: всі</option>
+                                    <option value="0">Немає (0)</option>
+                                    <option value="1-50">1-50</option>
+                                    <option value="50+">Більше 50</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-section-title">Стан та потреби</div>
+                            <div class="filter-row">
+                                <select id="damage-filter">
+                                    <option value="all">🏚️ Пошкодження: всі</option>
+                                    <option value="yes">Є пошкодження</option>
+                                    <option value="no">Немає</option>
+                                </select>
+                                <select id="needs-filter">
+                                    <option value="all">⚠️ Потреби: всі</option>
+                                    <option value="yes">Є потреби</option>
+                                    <option value="no">Немає</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button id="reset-filters" style="width:100%;padding:8px;background:var(--bg-hover);border:1px solid var(--border-color);border-radius:6px;font-size:11px;cursor:pointer;margin-top:4px;">🔄 Скинути всі фільтри</button>
+                    </div>
+                    <div class="results-count">Знайдено: <span id="results-count">0</span> закладів</div>
+                    <div class="facilities-list" id="facilities-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <script>
+        // ============ CONFIG ============
+        const GOOGLE_SHEET_ID = '1QBvEwL95rTy-srxIZBlx8l_LYWrmDUvr41vT8xh3XvM';
+        const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
+        
+        // Try multiple sheet names and URL formats
+        const getUrls = () => [
+            `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=facilities`,
+            `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Лист1`,
+            `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`,
+            `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv`,
+            `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=csv&gid=0`
+        ];
+
+        // ============ ТОЧНІ МЕЖІ РАЙОНІВ ============
+        let districtBoundaries = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Одеський"},"geometry":{"type":"Polygon","coordinates":[[[30.0888,46.3773],[30.1685,46.3773],[30.1877,46.2615],[30.2975,46.2122],[30.4294,46.1094],[30.4843,46.077],[30.6052,46.1931],[30.6903,46.3014],[30.7343,46.3716],[30.7727,46.4473],[30.7562,46.5022],[30.759,46.5437],[30.7864,46.5607],[30.8249,46.5513],[30.9073,46.5664],[30.9842,46.5853],[31.0144,46.6136],[31.0583,46.6098],[31.127,46.6098],[31.16,46.6193],[31.1847,46.6758],[31.1765,46.753],[31.16,46.7869],[31.138,46.8226],[31.0968,46.8583],[31.0144,46.8527],[30.9512,46.8696],[30.8798,46.8827],[30.748,46.8677],[30.6628,46.8677],[30.6024,46.8527],[30.5035,46.817],[30.4541,46.8677],[30.4623,46.7869],[30.4074,46.7718],[30.2975,46.7624],[30.2481,46.753],[30.2097,46.7267],[30.1959,46.6871],[30.1355,46.6834],[30.0476,46.6758],[29.968,46.6683],[29.968,46.6079],[29.9515,46.574],[29.913,46.557],[29.9377,46.506],[30.0092,46.4965],[30.0037,46.4738],[30.0394,46.4549],[30.1053,46.4397],[30.1602,46.4227],[30.1108,46.4076],[30.0888,46.3773]]]}},{"type":"Feature","properties":{"name":"Ізмаїльський"},"geometry":{"type":"Polygon","coordinates":[[[28.2349,45.4736],[28.298,45.5371],[28.3914,45.5217],[28.4244,45.4813],[28.5095,45.5025],[28.5864,45.4832],[28.5974,45.3425],[28.6578,45.3502],[28.6578,45.4832],[28.6935,45.5044],[28.7485,45.5698],[28.8583,45.616],[29.0067,45.6428],[29.0863,45.6947],[29.1632,45.71],[29.1467,45.614],[29.2319,45.7081],[29.3445,45.6928],[29.4351,45.6505],[29.4928,45.6294],[29.5944,45.5525],[29.6548,45.5083],[29.7537,45.5256],[29.7977,45.4332],[29.7949,45.3541],[29.7812,45.2517],[29.7867,45.2033],[29.7263,45.2033],[29.6741,45.2072],[29.6658,45.2807],[29.6384,45.3328],[29.5724,45.3849],[29.4928,45.4235],[29.3939,45.4409],[29.317,45.4332],[29.2538,45.4119],[29.2291,45.383],[29.1467,45.3849],[29.0836,45.3811],[29.0314,45.356],[28.9737,45.3309],[28.9462,45.3019],[28.9078,45.2942],[28.8501,45.3097],[28.7924,45.3232],[28.7567,45.3077],[28.754,45.2788],[28.7924,45.2575],[28.7567,45.2382],[28.7018,45.2285],[28.6523,45.2362],[28.5974,45.2459],[28.526,45.2594],[28.4683,45.2768],[28.3859,45.3155],[28.3145,45.3386],[28.2788,45.3714],[28.2596,45.4254],[28.2349,45.4736]]]}},{"type":"Feature","properties":{"name":"Болградський"},"geometry":{"type":"Polygon","coordinates":[[[28.504,45.5025],[28.5837,45.4832],[28.6002,45.3406],[28.6688,45.3521],[28.6606,45.4871],[28.7018,45.5217],[28.765,45.5775],[28.8885,45.6275],[28.9984,45.6409],[29.0424,45.6678],[29.1412,45.7119],[29.155,45.6217],[29.2209,45.7119],[29.3088,45.7004],[29.3912,45.6697],[29.5203,45.7886],[29.534,45.869],[29.556,45.9397],[29.5697,46.0084],[29.5477,46.0904],[29.545,46.1912],[29.5944,46.2045],[29.5889,46.3128],[29.5862,46.3602],[29.5615,46.4114],[29.5038,46.4341],[29.4626,46.4889],[29.4269,46.4927],[29.3774,46.4568],[29.3582,46.4965],[29.3198,46.4606],[29.2703,46.4132],[29.2072,46.3791],[29.2264,46.4114],[29.2264,46.4416],[29.2072,46.4776],[29.2319,46.506],[29.2017,46.5513],[29.1605,46.5267],[29.0891,46.5154],[29.0204,46.5022],[28.9435,46.4473],[28.9819,46.3773],[28.9819,46.2976],[28.9764,46.2255],[29.0726,46.1836],[29.0121,46.1437],[28.9655,46.0828],[29.0314,46.0351],[28.9957,46.0065],[28.9215,45.9836],[28.7787,45.9626],[28.7759,45.8345],[28.6798,45.8097],[28.6853,45.7771],[28.6002,45.7637],[28.5974,45.7254],[28.5287,45.7292],[28.4793,45.7004],[28.4821,45.662],[28.537,45.6486],[28.548,45.6083],[28.5452,45.5852],[28.4958,45.5525],[28.504,45.5025]]]}},{"type":"Feature","properties":{"name":"Білгород-Дністровський"},"geometry":{"type":"Polygon","coordinates":[[[29.3774,45.664],[29.545,45.5987],[29.5972,45.5371],[29.6439,45.5294],[29.8526,45.6601],[29.924,45.7004],[30.0751,45.8097],[30.2591,45.8996],[30.369,46.0427],[30.4349,46.0713],[30.3882,46.1285],[30.3333,46.1912],[30.2563,46.2255],[30.1849,46.2672],[30.1053,46.3299],[30.0888,46.3754],[29.9377,46.3886],[29.8856,46.3659],[29.8306,46.3867],[29.7867,46.417],[29.751,46.4662],[29.7098,46.4416],[29.6494,46.4246],[29.6576,46.3735],[29.5834,46.364],[29.5944,46.3033],[29.5972,46.2083],[29.5395,46.1817],[29.5615,46.0847],[29.567,46.0237],[29.5505,45.9607],[29.5532,45.8843],[29.5532,45.8154],[29.5148,45.7752],[29.4351,45.7081],[29.3774,45.664]]]}},{"type":"Feature","properties":{"name":"Подільський"},"geometry":{"type":"Polygon","coordinates":[[[30.2618,47.9605],[30.2234,48.0028],[30.2563,48.0322],[30.2179,48.0652],[30.2783,48.0909],[30.3278,48.0946],[30.3278,48.1313],[30.2673,48.1478],[30.1602,48.1588],[30.108,48.1459],[30.0449,48.1624],[30.0092,48.2082],[29.9625,48.2393],[29.8801,48.199],[29.8004,48.21],[29.7043,48.1936],[29.6494,48.1789],[29.6384,48.1111],[29.5038,48.1019],[29.3555,48.1056],[29.2758,48.1056],[29.2017,48.1276],[29.1275,48.1551],[29.0588,48.1862],[29.0341,48.1404],[28.9819,48.1478],[28.9188,48.1239],[28.8556,48.0799],[28.8364,48.045],[28.8858,48.0083],[28.9133,47.9771],[28.9792,47.9715],[29.0506,47.9347],[29.0945,47.9715],[29.2264,47.9145],[29.2621,47.8592],[29.1962,47.8242],[29.2593,47.8039],[29.2538,47.7744],[29.2264,47.7393],[29.2236,47.6783],[29.2264,47.6321],[29.1879,47.5821],[29.1467,47.571],[29.1522,47.5302],[29.1989,47.5079],[29.1852,47.4615],[29.2209,47.4392],[29.2841,47.4374],[29.3335,47.4467],[29.35,47.3835],[29.3857,47.3574],[29.4269,47.309],[29.4736,47.3128],[29.5313,47.3574],[29.5752,47.3128],[29.6796,47.4448],[29.9323,47.4671],[29.9954,47.4541],[30.1108,47.4374],[30.1987,47.4615],[30.325,47.5153],[30.4623,47.5691],[30.4871,47.6173],[30.4459,47.6432],[30.4019,47.7098],[30.4047,47.7559],[30.4239,47.7947],[30.3278,47.8316],[30.303,47.8869],[30.2921,47.9237],[30.2618,47.9605]]]}},{"type":"Feature","properties":{"name":"Роздільнянський"},"geometry":{"type":"Polygon","coordinates":[[[29.5862,47.3221],[29.6548,47.4355],[29.8938,47.456],[29.9789,47.4374],[30.097,47.4411],[30.1328,47.4058],[30.1245,47.337],[30.1245,47.2885],[30.163,47.2569],[30.2151,47.2084],[30.2563,47.1486],[30.2975,47.0888],[30.4047,47.0645],[30.4102,47.0158],[30.3992,46.9521],[30.4376,46.8959],[30.4541,46.8546],[30.4706,46.8019],[30.4376,46.7606],[30.2563,46.7624],[30.2206,46.7606],[30.2097,46.706],[30.2151,46.6852],[30.141,46.6834],[30.0806,46.6702],[30.0009,46.6834],[29.957,46.6871],[29.9542,46.7493],[29.9542,46.7869],[29.9487,46.8132],[29.9405,46.8489],[29.8746,46.8677],[29.8169,46.8884],[29.7592,46.8752],[29.7153,46.9052],[29.6466,46.9296],[29.5697,46.9503],[29.5862,46.984],[29.6494,47.0477],[29.5999,47.0982],[29.5532,47.1],[29.4955,47.1243],[29.5587,47.1449],[29.5422,47.2438],[29.5862,47.2643],[29.5862,47.3221]]]}},{"type":"Feature","properties":{"name":"Березівський"},"geometry":{"type":"Polygon","coordinates":[[[30.1328,47.4374],[30.4623,47.5654],[30.5035,47.6284],[30.6244,47.6228],[30.7178,47.5969],[30.7507,47.6506],[30.7892,47.6117],[30.7864,47.571],[30.8524,47.5302],[30.8496,47.5079],[30.8551,47.4541],[30.8743,47.4169],[30.8936,47.3835],[30.9155,47.3239],[30.9018,47.2979],[30.9814,47.296],[31.0062,47.2643],[31.171,47.2513],[31.1682,47.2233],[31.1243,47.1617],[31.1847,47.1617],[31.2341,47.1598],[31.311,47.0813],[31.2918,47.0252],[31.2039,46.9877],[31.127,46.9803],[31.0007,46.9615],[31.0474,46.9015],[31.1243,46.8508],[30.9787,46.847],[30.8936,46.8865],[30.8414,46.8752],[30.7123,46.8696],[30.6381,46.8546],[30.5557,46.8283],[30.4926,46.832],[30.4156,46.9353],[30.4102,47.0458],[30.2921,47.1019],[30.141,47.2699],[30.13,47.337],[30.1328,47.3928],[30.1328,47.4374]]]}}]};
+
+        // ============ DISTRICTS DATA ============
+        let districts = [
+            { name: 'Одеський', lat: 46.45, lng: 30.55, population: 1360.9 },
+            { name: 'Білгород-Дністровський', lat: 46.05, lng: 30.05, population: 201.4 },
+            { name: 'Болградський', lat: 45.85, lng: 28.85, population: 154.5 },
+            { name: 'Ізмаїльський', lat: 45.40, lng: 29.00, population: 206.2 },
+            { name: 'Подільський', lat: 47.75, lng: 29.55, population: 229.9 },
+            { name: 'Роздільнянський', lat: 47.00, lng: 30.10, population: 104.2 },
+            { name: 'Березівський', lat: 47.25, lng: 30.90, population: 123.3 }
+        ];
+
+        // ============ FACILITIES DATA (EXTENDED) ============
+        let facilities = [
+            { id: 1, name: 'КНП "Одеська обласна клінічна лікарня" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'Генератори, сонячні панелі, ДБЖ', altPowerTypes: ['generator', 'solar', 'ups'], fuelDays: 7, heating: 'central', water: 'central', waterReserve: 7, connection: true, contact: '0668035861', lat: 46.4547, lng: 30.7457, beds: 1148, criticalPatients: 89, ventilator: 38, centralOxygen: true, oxygenReserve: 6, damage: false, needResources: false, criticalResources: '' },
+            { id: 2, name: 'КНП "Одеська обласна дитяча клінічна лікарня" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'Генератори, сонячні панелі, ДБЖ', altPowerTypes: ['generator', 'solar', 'ups'], fuelDays: 5, heating: 'central', water: 'central', waterReserve: 7, connection: true, contact: '0950018206', lat: 46.4692, lng: 30.7501, beds: 435, criticalPatients: 15, ventilator: 8, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 3, name: 'КНП "Одеський обласний клінічний медичний центр" ООР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'сонячні батареї', altPowerTypes: ['solar'], fuelDays: 20, heating: 'own', water: 'central', waterReserve: 30, connection: true, contact: '0976154722', lat: 46.4825, lng: 30.7233, beds: 300, criticalPatients: 0, ventilator: 0, centralOxygen: true, oxygenReserve: 90, damage: false, needResources: true, criticalResources: 'Паливо для теплопостачання' },
+            { id: 4, name: 'КНП "Обласний медичний центр психічного здоровя" ООР', district: 'Одеський', network: 'Надкластерна', power: false, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 5, heating: 'own', water: 'central', waterReserve: 3, connection: true, contact: '0505812652', lat: 46.4623, lng: 30.7234, beds: 1651, criticalPatients: 0, ventilator: 0, centralOxygen: false, oxygenReserve: 0, damage: false, needResources: true, criticalResources: 'Паливо для харчоблоку' },
+            { id: 5, name: 'КНП "Міська клінічна лікарня № 1" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 3, heating: 'central', water: 'central', waterReserve: 5, connection: true, contact: '0676498759', lat: 46.462, lng: 30.752, beds: 505, criticalPatients: 42, ventilator: 4, centralOxygen: true, oxygenReserve: 17, damage: false, needResources: false, criticalResources: '' },
+            { id: 6, name: 'КНП "Міська клінічна лікарня № 10" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'генератор', altPowerTypes: ['generator'], fuelDays: 2, heating: 'central', water: 'central', waterReserve: 5, connection: true, contact: '0671655291', lat: 46.415, lng: 30.728, beds: 610, criticalPatients: 141, ventilator: 2, centralOxygen: true, oxygenReserve: 15, damage: false, needResources: false, criticalResources: '' },
+            { id: 7, name: 'КНП "Міська клінічна лікарня № 11" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'генератори', altPowerTypes: ['generator'], fuelDays: 1, heating: 'central', water: 'central', waterReserve: 3, connection: true, contact: '0979653744', lat: 46.495, lng: 30.762, beds: 685, criticalPatients: 127, ventilator: 5, centralOxygen: true, oxygenReserve: 3, damage: false, needResources: false, criticalResources: '' },
+            { id: 8, name: 'КНП "Дитяча міська клінічна лікарня № 3" ОМР', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'Генератори, сонячні панелі, ДБЖ', altPowerTypes: ['generator', 'solar', 'ups'], fuelDays: 5, heating: 'central', water: 'central', waterReserve: 7, connection: true, contact: '0674867940', lat: 46.41, lng: 30.695, beds: 302, criticalPatients: 6, ventilator: 2, centralOxygen: true, oxygenReserve: 14, damage: false, needResources: false, criticalResources: '' },
+            { id: 9, name: 'КНП "Біляївська багатопрофільна лікарня"', district: 'Одеський', network: 'Кластерна', power: false, altPower: 'Генератори, сонячні панелі, Тесла', altPowerTypes: ['generator', 'solar', 'tesla'], fuelDays: 10, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0969607452', lat: 46.486, lng: 30.211, beds: 250, criticalPatients: 1, ventilator: 0, centralOxygen: false, oxygenReserve: 14, damage: false, needResources: false, criticalResources: '' },
+            { id: 10, name: 'КНП "Чорноморська лікарня"', district: 'Одеський', network: 'Кластерна', power: true, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 7, heating: 'central', water: 'central', waterReserve: 10, connection: true, contact: '0637262404', lat: 46.304, lng: 30.656, beds: 465, criticalPatients: 11, ventilator: 3, centralOxygen: true, oxygenReserve: 15, damage: false, needResources: false, criticalResources: '' },
+            { id: 11, name: 'КНП "Пологовий будинок № 5" ОМР', district: 'Одеський', network: 'Загальна', power: false, altPower: 'генератори', altPowerTypes: ['generator'], fuelDays: 0, heating: 'central', water: 'central', waterReserve: 5, connection: true, contact: '0674837296', lat: 46.4534, lng: 30.7612, beds: 120, criticalPatients: 0, ventilator: 0, centralOxygen: true, oxygenReserve: 14, damage: false, needResources: true, criticalResources: 'Бензин для генераторів' },
+            { id: 12, name: 'КНП "Міська клінічна інфекційна лікарня" ОМР', district: 'Одеський', network: 'Загальна', power: true, altPower: 'Генератор, сонячні панелі', altPowerTypes: ['generator', 'solar'], fuelDays: 7, heating: 'central', water: 'central', waterReserve: 10, connection: true, contact: '0503337959', lat: 46.468, lng: 30.703, beds: 230, criticalPatients: 20, ventilator: 0, centralOxygen: true, oxygenReserve: 10, damage: false, needResources: false, criticalResources: '' },
+            { id: 13, name: 'КНП "Доброславська багатопрофільна лікарня"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератор, панелі', altPowerTypes: ['generator', 'solar'], fuelDays: 5, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0674270804', lat: 46.552, lng: 30.394, beds: 145, criticalPatients: 2, ventilator: 0, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 14, name: 'КНП "Овідіопольська лікарня"', district: 'Одеський', network: 'Загальна', power: true, altPower: 'генератори', altPowerTypes: ['generator'], fuelDays: 6, heating: 'own', water: 'central', waterReserve: 10, connection: true, contact: '0966148862', lat: 46.249, lng: 30.441, beds: 160, criticalPatients: 5, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 15, name: 'КНП "Білгород-Дністровська міська багатопрофільна лікарня"', district: 'Білгород-Дністровський', network: 'Кластерна', power: true, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 7, heating: 'central', water: 'central', waterReserve: 7, connection: true, contact: '0977226393', lat: 46.193, lng: 30.346, beds: 226, criticalPatients: 27, ventilator: 0, centralOxygen: false, oxygenReserve: 10, damage: false, needResources: false, criticalResources: '' },
+            { id: 16, name: 'КНП "Татарбунарська багатопрофільна лікарня"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'генератор', altPowerTypes: ['generator'], fuelDays: 7, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0976445111', lat: 45.846, lng: 29.615, beds: 150, criticalPatients: 8, ventilator: 0, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 17, name: 'КНП "Білгород-Дністровська центральна районна лікарня"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 10, heating: 'central', water: 'central', waterReserve: 7, connection: true, contact: '0677103180', lat: 46.018, lng: 30.125, beds: 100, criticalPatients: 0, ventilator: 0, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: true, criticalResources: 'ДП для генераторів' },
+            { id: 18, name: 'КП "Саратська центральна лікарня"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'генератори, Tesla', altPowerTypes: ['generator', 'tesla'], fuelDays: 7, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0966266520', lat: 46.018, lng: 29.673, beds: 190, criticalPatients: 0, ventilator: 0, centralOxygen: false, oxygenReserve: 10, damage: false, needResources: false, criticalResources: '' },
+            { id: 19, name: 'КНП "Старокозацька районна лікарня"', district: 'Білгород-Дністровський', network: 'Загальна', power: true, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 5, heating: 'own', water: 'well', waterReserve: 7, connection: true, contact: '0680137200', lat: 46.034, lng: 30.123, beds: 65, criticalPatients: 4, ventilator: 1, centralOxygen: true, oxygenReserve: 5, damage: false, needResources: false, criticalResources: '' },
+            { id: 20, name: 'КНП "Арцизька центральна опорна лікарня"', district: 'Болградський', network: 'Кластерна', power: false, altPower: 'Генератор, Тесла', altPowerTypes: ['generator', 'tesla'], fuelDays: 14, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0972744169', lat: 45.993, lng: 28.878, beds: 170, criticalPatients: 10, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 21, name: 'КНП "Бессарабська багатопрофільна лікарня"', district: 'Болградський', network: 'Загальна', power: false, altPower: 'генератор', altPowerTypes: ['generator'], fuelDays: 7, heating: 'own', water: 'well', waterReserve: 10, connection: true, contact: '0976151657', lat: 46.2667, lng: 29.1667, beds: 170, criticalPatients: 8, ventilator: 0, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 22, name: 'КНП "Болградська центральна районна лікарня"', district: 'Болградський', network: 'Загальна', power: true, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 10, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0935131037', lat: 45.683, lng: 28.617, beds: 200, criticalPatients: 10, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 23, name: 'КНП "Ізмаїльська міська центральна лікарня"', district: 'Ізмаїльський', network: 'Кластерна', power: false, altPower: 'генератори, сонячні панелі', altPowerTypes: ['generator', 'solar'], fuelDays: 14, heating: 'central', water: 'central', waterReserve: 10, connection: true, contact: '0973543451', lat: 45.353, lng: 28.833, beds: 290, criticalPatients: 3, ventilator: 0, centralOxygen: true, oxygenReserve: 10, damage: false, needResources: false, criticalResources: '' },
+            { id: 24, name: 'КНП "Кілійська багатопрофільна лікарня"', district: 'Ізмаїльський', network: 'Загальна', power: false, altPower: 'генератор', altPowerTypes: ['generator'], fuelDays: 7, heating: 'own', water: 'central', waterReserve: 5, connection: true, contact: '0988140619', lat: 45.442, lng: 29.262, beds: 175, criticalPatients: 2, ventilator: 0, centralOxygen: false, oxygenReserve: 3, damage: false, needResources: true, criticalResources: 'Генератор 200 кВт' },
+            { id: 25, name: 'КНП "Центральна Ренійська міська лікарня"', district: 'Ізмаїльський', network: 'Загальна', power: false, altPower: 'генератори', altPowerTypes: ['generator'], fuelDays: 5, heating: 'own', water: 'none', waterReserve: 0, connection: false, contact: '0679816643', lat: 45.457, lng: 28.273, beds: 115, criticalPatients: 10, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: true, needResources: true, criticalResources: 'Генератор 150-200 кВт' },
+            { id: 26, name: 'КНП "ЦРЛ" Сафянівська', district: 'Ізмаїльський', network: 'Загальна', power: true, altPower: 'генератор, сонячні батареї, тесла', altPowerTypes: ['generator', 'solar', 'tesla'], fuelDays: 27, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0972487775', lat: 45.518, lng: 28.762, beds: 240, criticalPatients: 32, ventilator: 6, centralOxygen: true, oxygenReserve: 5, damage: false, needResources: false, criticalResources: '' },
+            { id: 27, name: 'КНП "Подільська міська лікарня"', district: 'Подільський', network: 'Кластерна', power: true, altPower: 'генератори, сонячні панелі', altPowerTypes: ['generator', 'solar'], fuelDays: 7, heating: 'central', water: 'central', waterReserve: 7, connection: true, contact: '0984842595', lat: 47.749, lng: 29.535, beds: 299, criticalPatients: 2, ventilator: 1, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 28, name: 'КНП "Ананьївська багатопрофільна міська лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'Генератор, Тесла', altPowerTypes: ['generator', 'tesla'], fuelDays: 30, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0679553583', lat: 47.7167, lng: 29.95, beds: 95, criticalPatients: 0, ventilator: 0, centralOxygen: true, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 29, name: 'КП "Балтська багатопрофільна лікарня"', district: 'Подільський', network: 'Кластерна', power: false, altPower: 'Генератори, сонячна станція, ДБЖ', altPowerTypes: ['generator', 'solar', 'ups'], fuelDays: 10, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0952284517', lat: 47.938, lng: 29.619, beds: 160, criticalPatients: 3, ventilator: 0, centralOxygen: false, oxygenReserve: 14, damage: false, needResources: false, criticalResources: '' },
+            { id: 30, name: 'КНП "Кодимська лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори, сонячні панелі, ДБЖ', altPowerTypes: ['generator', 'solar', 'ups'], fuelDays: 20, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0967229937', lat: 48.105, lng: 29.132, beds: 50, criticalPatients: 3, ventilator: 0, centralOxygen: false, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 31, name: 'КНП "Любашівська багатопрофільна лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори, сонячні панелі', altPowerTypes: ['generator', 'solar'], fuelDays: 7, heating: 'own', water: 'well', waterReserve: 30, connection: true, contact: '0674896441', lat: 47.839, lng: 30.258, beds: 120, criticalPatients: 2, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 32, name: 'КНП "Савранська лікарня"', district: 'Подільський', network: 'Загальна', power: true, altPower: 'генератори', altPowerTypes: ['generator'], fuelDays: 5, heating: 'own', water: 'well', waterReserve: 7, connection: true, contact: '0679422414', lat: 48.133, lng: 30.087, beds: 70, criticalPatients: 1, ventilator: 0, centralOxygen: false, oxygenReserve: 3, damage: false, needResources: false, criticalResources: '' },
+            { id: 33, name: 'КНП "Роздільнянська багатопрофільна лікарня"', district: 'Роздільнянський', network: 'Кластерна', power: true, altPower: 'Генератори', altPowerTypes: ['generator'], fuelDays: 7, heating: 'central', water: 'central', waterReserve: 10, connection: true, contact: '0932555470', lat: 46.848, lng: 30.492, beds: 163, criticalPatients: 32, ventilator: 3, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 34, name: 'КНП "Великомихайлівська багатопрофільна лікарня"', district: 'Роздільнянський', network: 'Загальна', power: true, altPower: 'генератори', altPowerTypes: ['generator'], fuelDays: 10, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0988477038', lat: 47.556, lng: 30.052, beds: 148, criticalPatients: 5, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 35, name: 'КНП "Захарівська багатопрофільна лікарня"', district: 'Роздільнянський', network: 'Загальна', power: true, altPower: 'генератори, сонячні панелі', altPowerTypes: ['generator', 'solar'], fuelDays: 7, heating: 'own', water: 'well', waterReserve: 10, connection: true, contact: '0507247345', lat: 47.088, lng: 30.501, beds: 123, criticalPatients: 4, ventilator: 0, centralOxygen: false, oxygenReserve: 10, damage: false, needResources: false, criticalResources: '' },
+            { id: 36, name: 'КНП "Березівська центральна міська лікарня"', district: 'Березівський', network: 'Кластерна', power: false, altPower: 'генератор, сонячні батареї', altPowerTypes: ['generator', 'solar'], fuelDays: 10, heating: 'own', water: 'well', waterReserve: 14, connection: true, contact: '0678129909', lat: 47.203, lng: 30.918, beds: 155, criticalPatients: 3, ventilator: 0, centralOxygen: true, oxygenReserve: 30, damage: false, needResources: false, criticalResources: '' },
+            { id: 37, name: 'КНП "Ширяївська ЦРЛ"', district: 'Березівський', network: 'Загальна', power: true, altPower: 'Генератор', altPowerTypes: ['generator'], fuelDays: 7, heating: 'own', water: 'well', waterReserve: 7, connection: true, contact: '0934693305', lat: 47.377, lng: 30.191, beds: 74, criticalPatients: 0, ventilator: 0, centralOxygen: false, oxygenReserve: 7, damage: false, needResources: false, criticalResources: '' },
+            { id: 38, name: 'КНП "Іванівський медичний центр"', district: 'Березівський', network: 'Загальна', power: true, altPower: 'генератор, Tesla', altPowerTypes: ['generator', 'tesla'], fuelDays: 5, heating: 'own', water: 'well', waterReserve: 10, connection: true, contact: '0979381157', lat: 47.15, lng: 30.8833, beds: 80, criticalPatients: 5, ventilator: 0, centralOxygen: false, oxygenReserve: 10, damage: false, needResources: false, criticalResources: '' }
+        ];
+
+        // ============ STATE ============
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        let autoRefreshInterval = null;
+        let districtLayer = null;
+        let districtsVisible = true;
+
+        // ============ MAP SETUP ============
+        const map = L.map('map').setView([46.5, 29.8], 7);
+        const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
+        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© CARTO' });
+        lightTiles.addTo(map);
+        const markers = L.markerClusterGroup({ maxClusterRadius: 50, spiderfyOnMaxZoom: true, showCoverageOnHover: false });
+        map.addLayer(markers);
+
+        // ============ MARKER ICONS (LIGHTNING BOLT) ============
+        function createMarkerIcon(power, needResources) {
+            if (needResources) {
+                return L.divIcon({
+                    className: 'custom-marker',
+                    html: `<svg width="30" height="30" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" fill="#ffedd5" stroke="#f97316" stroke-width="2.5"/>
+                        <path d="M12 8v4M12 16h.01" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+            } else if (power) {
+                return L.divIcon({
+                    className: 'custom-marker',
+                    html: `<svg width="30" height="30" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" fill="#dcfce7" stroke="#10b981" stroke-width="2.5"/>
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#10b981" transform="scale(0.45) translate(14,10)"/>
+                    </svg>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+            } else {
+                return L.divIcon({
+                    className: 'custom-marker',
+                    html: `<svg width="30" height="30" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" fill="#fee2e2" stroke="#ef4444" stroke-width="2.5"/>
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#ef4444" transform="scale(0.45) translate(14,10)"/>
+                        <line x1="5" y1="5" x2="19" y2="19" stroke="#ef4444" stroke-width="2.5"/>
+                    </svg>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+            }
+        }
+
+        // ============ DISTRICT FUNCTIONS ============
+        function getDistrictStats(name) {
+            const df = facilities.filter(f => f.district === name);
+            const total = df.length, withPower = df.filter(f => f.power).length, noPower = total - withPower;
+            const criticalPatients = df.reduce((s, f) => s + (f.criticalPatients || 0), 0);
+            const nadklusterna = df.filter(f => f.network === 'Надкластерна').length;
+            const klusterna = df.filter(f => f.network === 'Кластерна').length;
+            const zagalna = df.filter(f => f.network === 'Загальна').length;
+            let status = withPower === 0 ? 'no-power' : (noPower > 0 ? 'partial' : 'power');
+            return { total, withPower, noPower, criticalPatients, nadklusterna, klusterna, zagalna, status };
+        }
+
+        function getDistrictStyle(status) {
+            const c = { 'power': { fill: 'rgba(234,179,8,0.35)', stroke: '#eab308' }, 'partial': { fill: 'rgba(249,115,22,0.35)', stroke: '#f97316' }, 'no-power': { fill: 'rgba(59,130,246,0.35)', stroke: '#3b82f6' } };
+            return c[status] || c['no-power'];
+        }
+
+        function createDistrictBoundaries() {
+            if (districtLayer) map.removeLayer(districtLayer);
+            districtLayer = L.geoJSON(districtBoundaries, {
+                style: f => { const s = getDistrictStats(f.properties.name), st = getDistrictStyle(s.status); return { fillColor: st.fill, fillOpacity: 0.5, color: st.stroke, weight: 3, opacity: 1 }; },
+                onEachFeature: (f, layer) => {
+                    const n = f.properties.name, s = getDistrictStats(n), st = { 'power': '✓ Є світло', 'partial': '◐ Частково', 'no-power': '✗ Немає світла' };
+                    layer.bindTooltip(`<div style="font-family:Inter,sans-serif;min-width:200px"><div style="font-weight:700;font-size:15px;margin-bottom:6px">${n}</div><div style="font-size:12px;color:#666;margin-bottom:8px">${st[s.status]}</div><div style="font-size:12px;line-height:1.6">🏥 Закладів: <b>${s.total}</b><br>⚡ Зі світлом: <b style="color:#10b981">${s.withPower}</b> / без: <b style="color:#ef4444">${s.noPower}</b><br>👥 Важкохворих: <b>${s.criticalPatients}</b></div></div>`, { permanent: false, direction: 'center' });
+                    layer.on('mouseover', function() { this.setStyle({ weight: 5, fillOpacity: 0.6 }); });
+                    layer.on('mouseout', function() { districtLayer.resetStyle(this); });
+                    layer.on('click', () => { document.getElementById('district-filter').value = n; applyFilters(); document.querySelector('[data-tab="facilities"]').click(); });
+                }
+            }).addTo(map);
+        }
+
+        function updateMarkers() {
+            markers.clearLayers();
+            facilities.forEach(f => {
+                if (!f.lat || !f.lng) return;
+                const m = L.marker([f.lat, f.lng], { icon: createMarkerIcon(f.power, f.needResources) });
+                
+                const heatingText = { 'central': 'Централізоване', 'own': 'Власна котельня', 'none': 'Немає' };
+                const waterText = { 'central': 'Централізоване', 'well': 'Власна свердловина', 'none': 'Немає' };
+                
+                m.bindPopup(`
+                    <div class="popup-content">
+                        <div class="popup-header">
+                            <div class="popup-title">${f.name}</div>
+                            <div class="popup-subtitle">${f.district} • ${f.network}</div>
+                        </div>
+                        <div class="popup-grid">
+                            <div class="popup-stat"><div class="popup-stat-label">⚡ Світло</div><div class="popup-stat-value" style="color:${f.power?'#10b981':'#ef4444'}">${f.power?'✓ Є':'✗ Немає'}</div></div>
+                            <div class="popup-stat"><div class="popup-stat-label">🛏️ Ліжок</div><div class="popup-stat-value">${f.beds||'-'}</div></div>
+                            <div class="popup-stat"><div class="popup-stat-label">👥 Важкохворих</div><div class="popup-stat-value">${f.criticalPatients||0}</div></div>
+                            <div class="popup-stat"><div class="popup-stat-label">🫁 На ШВЛ</div><div class="popup-stat-value">${f.ventilator||0}</div></div>
+                        </div>
+                        <div class="popup-section">
+                            <div class="popup-section-title">⚡ Енергозабезпечення</div>
+                            <div class="popup-section-content">
+                                🔋 ${f.altPower||'Немає'}<br>
+                                ⛽ Запас палива: ${f.fuelDays||0} днів
+                            </div>
+                        </div>
+                        <div class="popup-section">
+                            <div class="popup-section-title">🏠 Комунікації</div>
+                            <div class="popup-section-content">
+                                🔥 Опалення: ${heatingText[f.heating]||'-'}<br>
+                                💧 Водопостачання: ${waterText[f.water]||'-'}<br>
+                                💧 Запас води: ${f.waterReserve||0} днів<br>
+                                📡 Зв'язок: ${f.connection?'Є':'Немає'}
+                            </div>
+                        </div>
+                        <div class="popup-section">
+                            <div class="popup-section-title">O₂ Кисень</div>
+                            <div class="popup-section-content">
+                                Централізований: ${f.centralOxygen?'Так':'Ні'}<br>
+                                Запас: ${f.oxygenReserve||0} днів
+                            </div>
+                        </div>
+                        ${f.damage?'<div class="popup-critical">🏚️ <b>Є пошкодження будівлі</b></div>':''}
+                        ${f.needResources?`<div class="popup-critical">⚠️ <b>Потреба:</b> ${f.criticalResources||''}</div>`:''}
+                        ${f.notes?`<div class="popup-section"><div class="popup-section-title">📝 Примітка</div><div class="popup-section-content">${f.notes}</div></div>`:''}
+                        <div class="popup-contact">📞 ${f.contact||''}</div>
+                    </div>
+                `, { maxWidth: 350 });
+                m.facilityId = f.id;
+                markers.addLayer(m);
+            });
+        }
+
+        // ============ RENDER ============
+        function renderDistricts() {
+            const c = document.getElementById('districts-list');
+            c.innerHTML = districts.map(d => {
+                const s = getDistrictStats(d.name), st = { 'power': 'Є світло', 'partial': 'Частково', 'no-power': 'Немає світла' };
+                return `<div class="district-card status-${s.status}" data-district="${d.name}"><div class="district-header"><div class="district-name">${d.name}</div><div class="district-status ${s.status}">${st[s.status]}</div></div><div class="district-stats"><div class="district-stat"><div class="district-stat-label">Всього ЗОЗ</div><div class="district-stat-value">${s.total}</div></div><div class="district-stat"><div class="district-stat-label">Зі світлом</div><div class="district-stat-value"><span class="green">${s.withPower}</span> / <span class="red">${s.noPower}</span></div></div><div class="district-stat"><div class="district-stat-label">Важкохворих</div><div class="district-stat-value">${s.criticalPatients}</div></div><div class="district-stat"><div class="district-stat-label">Населення</div><div class="district-stat-value">${d.population} тис.</div></div></div><div class="district-network">${s.nadklusterna>0?`<span class="network-tag nadklusterna">Надкластерна: ${s.nadklusterna}</span>`:''}${s.klusterna>0?`<span class="network-tag klusterna">Кластерна: ${s.klusterna}</span>`:''}${s.zagalna>0?`<span class="network-tag zagalna">Загальна: ${s.zagalna}</span>`:''}</div></div>`;
+            }).join('');
+            c.querySelectorAll('.district-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const d = districts.find(x => x.name === card.dataset.district);
+                    if (d) map.setView([d.lat, d.lng], 9);
+                    document.getElementById('district-filter').value = card.dataset.district;
+                    applyFilters();
+                    document.querySelector('[data-tab="facilities"]').click();
+                });
+            });
+        }
+
+        function renderFacilities(filtered = facilities) {
+            const c = document.getElementById('facilities-list');
+            document.getElementById('results-count').textContent = filtered.length;
+            c.innerHTML = filtered.map(f => `
+                <div class="facility-card ${f.power?'has-power':'no-power'} ${f.needResources?'critical':''}" data-id="${f.id}">
+                    <div class="facility-header">
+                        <div class="power-indicator ${f.power?'on':'off'}">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="${f.power?'#10b981':'#ef4444'}">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                                ${!f.power?'<line x1="4" y1="4" x2="20" y2="20" stroke="#ef4444" stroke-width="2.5"/>':''}
+                            </svg>
+                        </div>
+                        <div class="facility-name">${f.name}</div>
+                    </div>
+                    <div class="facility-meta">
+                        <span class="meta-item">📍 ${f.district}</span>
+                        <span class="network-tag ${f.network==='Надкластерна'?'nadklusterna':f.network==='Кластерна'?'klusterna':'zagalna'}">${f.network}</span>
+                        ${f.criticalPatients>0?`<span class="meta-item ${f.criticalPatients>50?'critical':''}">👥 ${f.criticalPatients}</span>`:''}
+                        ${f.centralOxygen?'<span class="meta-item">O₂</span>':''}
+                        ${f.damage?'<span class="meta-item warning">🏚️</span>':''}
+                        ${f.needResources?'<span class="meta-item critical">⚠️</span>':''}
+                    </div>
+                </div>
+            `).join('');
+            c.querySelectorAll('.facility-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const f = facilities.find(x => x.id === parseInt(card.dataset.id));
+                    if (f && f.lat && f.lng) { map.setView([f.lat, f.lng], 14); markers.eachLayer(m => { if (m.facilityId === f.id) m.openPopup(); }); }
+                });
+            });
+        }
+
+        // ============ FILTERS ============
+        function getFilteredFacilities() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const power = document.getElementById('power-filter').value;
+            const district = document.getElementById('district-filter').value;
+            const network = document.getElementById('network-filter').value;
+            const altpower = document.getElementById('altpower-filter').value;
+            const fuel = document.getElementById('fuel-filter').value;
+            const heating = document.getElementById('heating-filter').value;
+            const water = document.getElementById('water-filter').value;
+            const waterreserve = document.getElementById('waterreserve-filter').value;
+            const connection = document.getElementById('connection-filter').value;
+            const oxygen = document.getElementById('oxygen-filter').value;
+            const oxygenreserve = document.getElementById('oxygenreserve-filter').value;
+            const patients = document.getElementById('patients-filter').value;
+            const damage = document.getElementById('damage-filter').value;
+            const needs = document.getElementById('needs-filter').value;
+            
+            return facilities.filter(f => {
+                if (search && !f.name.toLowerCase().includes(search)) return false;
+                if (power === 'on' && !f.power) return false;
+                if (power === 'off' && f.power) return false;
+                if (district !== 'all' && f.district !== district) return false;
+                if (network !== 'all' && f.network !== network) return false;
+                
+                // Alt power
+                if (altpower === 'generator' && !(f.altPowerTypes || []).includes('generator')) return false;
+                if (altpower === 'solar' && !(f.altPowerTypes || []).includes('solar')) return false;
+                if (altpower === 'tesla' && !(f.altPowerTypes || []).includes('tesla')) return false;
+                if (altpower === 'ups' && !(f.altPowerTypes || []).includes('ups')) return false;
+                if (altpower === 'none' && f.altPower) return false;
+                
+                // Fuel
+                if (fuel === '0' && (f.fuelDays || 0) > 0) return false;
+                if (fuel === '1-5' && ((f.fuelDays || 0) < 1 || (f.fuelDays || 0) > 5)) return false;
+                if (fuel === '5+' && (f.fuelDays || 0) <= 5) return false;
+                
+                // Heating & Water
+                if (heating !== 'all' && f.heating !== heating) return false;
+                if (water !== 'all' && f.water !== water) return false;
+                
+                // Water reserve
+                if (waterreserve === '0' && (f.waterReserve || 0) > 0) return false;
+                if (waterreserve === '1-5' && ((f.waterReserve || 0) < 1 || (f.waterReserve || 0) > 5)) return false;
+                if (waterreserve === '5+' && (f.waterReserve || 0) <= 5) return false;
+                
+                // Connection
+                if (connection === 'yes' && !f.connection) return false;
+                if (connection === 'no' && f.connection) return false;
+                
+                // Oxygen
+                if (oxygen === 'yes' && !f.centralOxygen) return false;
+                if (oxygen === 'no' && f.centralOxygen) return false;
+                
+                // Oxygen reserve
+                if (oxygenreserve === '0' && (f.oxygenReserve || 0) > 0) return false;
+                if (oxygenreserve === '1-5' && ((f.oxygenReserve || 0) < 1 || (f.oxygenReserve || 0) > 5)) return false;
+                if (oxygenreserve === '5+' && (f.oxygenReserve || 0) <= 5) return false;
+                
+                // Patients - нова логіка: 0, 1-50, 50+
+                if (patients === '0' && (f.criticalPatients || 0) !== 0) return false;
+                if (patients === '1-50' && ((f.criticalPatients || 0) < 1 || (f.criticalPatients || 0) > 50)) return false;
+                if (patients === '50+' && (f.criticalPatients || 0) <= 50) return false;
+                
+                // Damage & Needs
+                if (damage === 'yes' && !f.damage) return false;
+                if (damage === 'no' && f.damage) return false;
+                if (needs === 'yes' && !f.needResources) return false;
+                if (needs === 'no' && f.needResources) return false;
+                
+                return true;
+            });
+        }
+        
+        function applyFilters() {
+            const filtered = getFilteredFacilities();
+            renderFacilities(filtered);
+            updateMarkersFiltered(filtered);
+        }
+        
+        function updateMarkersFiltered(filteredFacilities) {
+            markers.clearLayers();
+            const filteredIds = new Set(filteredFacilities.map(f => f.id));
+            
+            facilities.forEach(f => {
+                if (!f.lat || !f.lng) return;
+                if (!filteredIds.has(f.id)) return; // Skip if not in filtered list
+                
+                const m = L.marker([f.lat, f.lng], { icon: createMarkerIcon(f.power, f.needResources) });
+                
+                const heatingText = { 'central': 'Централізоване', 'own': 'Власна котельня', 'none': 'Немає' };
+                const waterText = { 'central': 'Централізоване', 'well': 'Власна свердловина', 'none': 'Немає' };
+                
+                m.bindPopup(`
+                    <div class="popup-content">
+                        <div class="popup-header">
+                            <div class="popup-title">${f.name}</div>
+                            <div class="popup-subtitle">${f.district} • ${f.network}</div>
+                        </div>
+                        <div class="popup-grid">
+                            <div class="popup-stat"><div class="popup-stat-label">⚡ Світло</div><div class="popup-stat-value" style="color:${f.power?'#10b981':'#ef4444'}">${f.power?'✓ Є':'✗ Немає'}</div></div>
+                            <div class="popup-stat"><div class="popup-stat-label">🛏️ Ліжок</div><div class="popup-stat-value">${f.beds||'-'}</div></div>
+                            <div class="popup-stat"><div class="popup-stat-label">👥 Важкохворих</div><div class="popup-stat-value">${f.criticalPatients||0}</div></div>
+                            <div class="popup-stat"><div class="popup-stat-label">🫁 На ШВЛ</div><div class="popup-stat-value">${f.ventilator||0}</div></div>
+                        </div>
+                        <div class="popup-section">
+                            <div class="popup-section-title">⚡ Енергозабезпечення</div>
+                            <div class="popup-section-content">
+                                🔋 ${f.altPower||'Немає'}<br>
+                                ⛽ Запас палива: ${f.fuelDays||0} днів
+                            </div>
+                        </div>
+                        <div class="popup-section">
+                            <div class="popup-section-title">🏠 Комунікації</div>
+                            <div class="popup-section-content">
+                                🔥 Опалення: ${heatingText[f.heating]||'-'}<br>
+                                💧 Водопостачання: ${waterText[f.water]||'-'}<br>
+                                💧 Запас води: ${f.waterReserve||0} днів<br>
+                                📡 Зв'язок: ${f.connection?'Є':'Немає'}
+                            </div>
+                        </div>
+                        <div class="popup-section">
+                            <div class="popup-section-title">O₂ Кисень</div>
+                            <div class="popup-section-content">
+                                Централізований: ${f.centralOxygen?'Так':'Ні'}<br>
+                                Запас: ${f.oxygenReserve||0} днів
+                            </div>
+                        </div>
+                        ${f.damage?'<div class="popup-critical">🏚️ <b>Є пошкодження будівлі</b></div>':''}
+                        ${f.needResources?`<div class="popup-critical">⚠️ <b>Потреба:</b> ${f.criticalResources||''}</div>`:''}
+                        ${f.notes?`<div class="popup-section"><div class="popup-section-title">📝 Примітка</div><div class="popup-section-content">${f.notes}</div></div>`:''}
+                        <div class="popup-contact">📞 ${f.contact||''}</div>
+                    </div>
+                `, { maxWidth: 350 });
+                m.facilityId = f.id;
+                markers.addLayer(m);
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.querySelectorAll('.filters select').forEach(s => s.selectedIndex = 0);
+            renderFacilities(facilities);
+            updateMarkers(); // Show all markers again
+        }
+
+        // ============ STATS ============
+        function updateStats() {
+            const total = facilities.length;
+            const withPower = facilities.filter(f => f.power).length;
+            const noPower = facilities.filter(f => !f.power).length;
+            const patients = facilities.reduce((s, f) => s + (f.criticalPatients || 0), 0);
+            
+            const nadk = facilities.filter(f => f.network === 'Надкластерна');
+            const klus = facilities.filter(f => f.network === 'Кластерна');
+            const zag = facilities.filter(f => f.network === 'Загальна');
+            
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-power').textContent = withPower;
+            document.getElementById('stat-no-power').textContent = noPower;
+            document.getElementById('stat-patients').textContent = patients;
+            
+            document.getElementById('stat-nadk-total').textContent = nadk.length;
+            document.getElementById('stat-nadk-power').textContent = nadk.filter(f => f.power).length;
+            document.getElementById('stat-nadk-nopower').textContent = nadk.filter(f => !f.power).length;
+            
+            document.getElementById('stat-klus-total').textContent = klus.length;
+            document.getElementById('stat-klus-power').textContent = klus.filter(f => f.power).length;
+            document.getElementById('stat-klus-nopower').textContent = klus.filter(f => !f.power).length;
+            
+            document.getElementById('stat-zag-total').textContent = zag.length;
+            document.getElementById('stat-zag-power').textContent = zag.filter(f => f.power).length;
+            document.getElementById('stat-zag-nopower').textContent = zag.filter(f => !f.power).length;
+        }
+
+        // ============ GOOGLE SHEETS ============
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            if (lines.length < 2) return [];
+            
+            const parseRow = (row) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim().replace(/^"|"$/g, ''));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim().replace(/^"|"$/g, ''));
+                return result;
+            };
+            
+            const headers = parseRow(lines[0]);
+            console.log('📊 Found headers:', headers);
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const values = parseRow(lines[i]);
+                const row = {};
+                headers.forEach((h, idx) => { 
+                    row[h.replace(/"/g, '').trim()] = values[idx] || ''; 
+                });
+                data.push(row);
+            }
+            return data;
+        }
+
+        async function loadFromGoogleSheets(silent = false) {
+            console.log('🔄 Starting Google Sheets load...');
+            
+            try {
+                if (!silent) showToast('⏳ Завантаження даних...');
+                
+                const urls = getUrls();
+                let csv = '';
+                
+                for (const url of urls) {
+                    try {
+                        console.log('🌐 Trying:', url);
+                        const response = await fetch(url);
+                        console.log('📡 Status:', response.status);
+                        
+                        if (response.ok) {
+                            const text = await response.text();
+                            console.log('📄 Response length:', text.length);
+                            
+                            if (text.length > 50 && !text.includes('<!DOCTYPE') && !text.includes('<html')) {
+                                csv = text;
+                                console.log('✅ Success! First 200 chars:', text.substring(0, 200));
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.log('❌ Error:', e.message);
+                    }
+                }
+                
+                if (!csv) {
+                    throw new Error('Таблиця недоступна. Перевірте доступ.');
+                }
+                
+                const data = parseCSV(csv);
+                console.log('📊 Parsed rows:', data.length);
+                if (data.length > 0) console.log('📊 First row keys:', Object.keys(data[0]));
+                
+                if (data.length > 0) {
+                    // Helper that finds column by partial match
+                    const get = (r, ...keys) => {
+                        // First try exact match
+                        for (const k of keys) {
+                            if (r[k] !== undefined && r[k] !== '') return r[k];
+                        }
+                        // Then try partial match (column name contains the key)
+                        for (const k of keys) {
+                            for (const col of Object.keys(r)) {
+                                if (col.toLowerCase().includes(k.toLowerCase()) && r[col] !== '') {
+                                    return r[col];
+                                }
+                            }
+                        }
+                        return '';
+                    };
+                    const getBool = (r, ...keys) => {
+                        const v = get(r, ...keys).toString().toLowerCase();
+                        return v === 'true' || v === '1' || v === 'так' || v === 'yes';
+                    };
+                    const getNum = (r, ...keys) => parseInt(get(r, ...keys)) || 0;
+                    const getFloat = (r, ...keys) => parseFloat(get(r, ...keys)) || null;
+                    
+                    facilities = data.map((r, i) => ({
+                        id: i + 1, 
+                        name: get(r, 'name', 'Назва'),
+                        district: get(r, 'district', 'Район'),
+                        network: get(r, 'network', 'Мережа') || 'Загальна',
+                        power: getBool(r, 'power', 'Світло'),
+                        altPower: get(r, 'altPower', 'Альт'),
+                        altPowerTypes: (get(r, 'altPowerTypes') || '').split(',').map(s => s.trim().toLowerCase()).filter(s => s),
+                        fuelDays: getNum(r, 'fuelDays', 'Запас палива', 'палива'),
+                        heating: get(r, 'heating', 'Опалення') || 'central',
+                        water: get(r, 'waterSupply', 'water', 'Водопостачання') || 'central',
+                        waterReserve: getNum(r, 'waterReserve', 'Запас води'),
+                        connection: getBool(r, 'connection', 'Звязок', "Зв'язок"),
+                        contact: get(r, 'contact', 'Контакт', 'Телефон'),
+                        lat: getFloat(r, 'lat', 'Широта'),
+                        lng: getFloat(r, 'lng', 'Довгота'),
+                        beds: getNum(r, 'beds', 'Ліжок'),
+                        criticalPatients: getNum(r, 'criticalPatients', 'Важкохворих'),
+                        ventilator: getNum(r, 'ventilator', 'ШВЛ'),
+                        centralOxygen: getBool(r, 'centralOxygen', 'Центр'),
+                        oxygenReserve: getNum(r, 'oxygenReserve', 'Запас O2', 'Запас О2'),
+                        damage: getBool(r, 'damage', 'Пошкодження'),
+                        needResources: getBool(r, 'criticalNeed', 'needResources', 'Критична потреба'),
+                        criticalResources: get(r, 'criticalResources', 'Критичні ресурси', 'Опис потреб'),
+                        notes: get(r, 'notes', 'Примітка', 'примітка', 'Notes', 'comment', 'Коментар')
+                    })).filter(f => f.name && f.name.length > 0);
+                    
+                    console.log('✅ Mapped facilities:', facilities.length);
+                    
+                    if (facilities.length > 0) {
+                        updateMarkers(); 
+                        createDistrictBoundaries(); 
+                        renderDistricts(); 
+                        renderFacilities(); 
+                        updateStats();
+                        document.getElementById('data-date').textContent = new Date().toLocaleString('uk-UA');
+                        showToast(`✓ Завантажено ${facilities.length} закладів`);
+                    } else {
+                        console.error('❌ No facilities found. Check column names!');
+                        console.log('Expected: name/Назва, district/Район, lat/Широта, lng/Довгота');
+                        showToast('⚠️ Колонки не знайдено. Перевірте назви (name, district, lat, lng)');
+                    }
+                }
+            } catch (e) { 
+                console.error('❌ Error:', e); 
+                showToast(`✗ ${e.message}`); 
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('auto-refresh-btn');
+            if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; btn.classList.remove('active'); showToast('Автооновлення вимкнено'); }
+            else { autoRefreshInterval = setInterval(() => loadFromGoogleSheets(true), AUTO_REFRESH_INTERVAL); btn.classList.add('active'); showToast('Автооновлення кожні 5 хв'); }
+        }
+
+        function toggleDistricts() {
+            const btn = document.getElementById('toggle-districts-btn');
+            if (districtsVisible) {
+                if (districtLayer) map.removeLayer(districtLayer);
+                districtsVisible = false;
+                btn.classList.add('active');
+                showToast('Райони приховано');
+            } else {
+                createDistrictBoundaries();
+                districtsVisible = true;
+                btn.classList.remove('active');
+                showToast('Райони показано');
+            }
+        }
+
+        function fitMapToAll() {
+            map.setView([46.5, 29.8], 7);
+            showToast('Повернуто до огляду всієї області');
+        }
+
+        function resetEverything() {
+            // Reset filters
+            document.getElementById('search-input').value = '';
+            document.querySelectorAll('.filters select').forEach(s => s.selectedIndex = 0);
+            
+            // Reset map view
+            map.setView([46.5, 29.8], 7);
+            
+            // Show districts if hidden
+            if (!districtsVisible) {
+                createDistrictBoundaries();
+                districtsVisible = true;
+                document.getElementById('toggle-districts-btn').classList.remove('active');
+            }
+            
+            // Reload all data
+            renderFacilities(facilities);
+            updateMarkers();
+            renderDistricts();
+            updateStats();
+            
+            // Switch to facilities tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('.tab[data-tab="facilities"]').classList.add('active');
+            document.getElementById('facilities-tab').classList.add('active');
+            
+            showToast('Все скинуто до початкового стану');
+        }
+
+        function initTheme() {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'dark') { map.removeLayer(lightTiles); darkTiles.addTo(map); } else { map.removeLayer(darkTiles); lightTiles.addTo(map); }
+        }
+
+        function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+
+        // ============ INIT ============
+        function init() {
+            initTheme();
+            
+            const df = document.getElementById('district-filter');
+            districts.forEach(d => { const o = document.createElement('option'); o.value = d.name; o.textContent = d.name; df.appendChild(o); });
+            
+            createDistrictBoundaries();
+            updateMarkers();
+            renderDistricts();
+            renderFacilities();
+            updateStats();
+            
+            document.getElementById('search-input').addEventListener('input', applyFilters);
+            document.querySelectorAll('.filters select').forEach(s => s.addEventListener('change', applyFilters));
+            document.getElementById('reset-filters').addEventListener('click', resetFilters);
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                });
+            });
+            
+            document.getElementById('refresh-btn').addEventListener('click', () => loadFromGoogleSheets());
+            document.getElementById('auto-refresh-btn').addEventListener('click', toggleAutoRefresh);
+            document.getElementById('theme-toggle').addEventListener('click', () => { currentTheme = currentTheme === 'light' ? 'dark' : 'light'; localStorage.setItem('theme', currentTheme); initTheme(); });
+            document.getElementById('reset-view-btn').addEventListener('click', resetEverything);
+            document.getElementById('toggle-districts-btn').addEventListener('click', toggleDistricts);
+            document.getElementById('fit-map-btn').addEventListener('click', fitMapToAll);
+            
+            if (GOOGLE_SHEET_ID && GOOGLE_SHEET_ID !== 'YOUR_GOOGLE_SHEET_ID') {
+                loadFromGoogleSheets(false);
+            } else {
+                showToast('✓ Карту завантажено (демо)');
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>
